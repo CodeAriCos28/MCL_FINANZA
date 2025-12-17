@@ -10,7 +10,7 @@ from .base import * # =========================================================
 DEBUG = False
 
 # 2. Hosts permitidos (Reemplaza con tus dominios reales)
-ALLOWED_HOSTS = ['midominio.com', 'www.midominio.com', 'mi_ip_servidor']
+ALLOWED_HOSTS = ['midominio.com', 'www.midominio.com', 'mcl-finanza-1.onrender.com']
 
 # 3. Clave secreta (Ya la cargamos desde .env en base.py)
 

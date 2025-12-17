@@ -29,7 +29,7 @@ DEBUG = True
 # ALLOWED_HOSTS = []
 # settings.py
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com']
 
 
 CSRF_TRUSTED_ORIGINS = [
