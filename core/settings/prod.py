@@ -26,13 +26,13 @@ SECURE_SSL_REDIRECT = True
 # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
-LOGGING['handlers']['file'] = {
-    'class': 'logging.handlers.RotatingFileHandler',
-    'filename': os.path.join(BASE_DIR, 'logs/django.log'),
-    'maxBytes': 1024*1024*5,  # 5 MB
-    'backupCount': 10,
-    'formatter': 'standard',
-}
+# LOGGING['handlers']['file'] = {
+#     'class': 'logging.handlers.RotatingFileHandler',
+#     'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+#     'maxBytes': 1024*1024*5,  # 5 MB
+#     'backupCount': 10,
+#     'formatter': 'standard',
+# }
 
-LOGGING['loggers']['django']['handlers'] = ['file']
-LOGGING['loggers']['derej_clan']['handlers'] = ['file']
+# # LOGGING['loggers']['django']['handlers'] = ['file']
+# LOGGING['loggers']['derej_clan']['handlers'] = ['file']
