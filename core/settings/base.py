@@ -167,37 +167,54 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # CONFIGURACION PARA LOS LOGS DE DJANGO
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+
+#     'formatters': {
+#         'standard': {
+#             'format': '[{levelname}] {asctime} {name}: {message}',
+#             'style': '{',
+#         }
+#     },
+
+#     'handlers': {
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'standard',
+#         },
+#     },
+
+#     'loggers': {
+#         'django': {
+#             'handlers': ['console'],
+#             'level': 'INFO',
+#         },
+#         'django.request': {
+#             'handlers': ['console'],
+#             'level': 'ERROR',
+#             'propagate': False,
+#         },
+#         'derej_clan': {
+#             'handlers': ['console'],
+#             'level': 'DEBUG',
+#         },
+#     }
+# }
+import os
+
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-
-    'formatters': {
-        'standard': {
-            'format': '[{levelname}] {asctime} {name}: {message}',
-            'style': '{',
-        }
-    },
-
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'standard',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'derej_clan': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-    }
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
 }
