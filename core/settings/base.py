@@ -24,7 +24,7 @@ load_dotenv()
 # SECRET_KEY = 'django-insecure-6amk(11q7n4-e3y13k!vb0@$6lo@5me-+bnjmofia&2zwf%9v%'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
 # ALLOWED_HOSTS = []
 # settings.py
@@ -152,6 +152,8 @@ LOGOUT_REDIRECT_URL = '/'  # Where to redirect after logout
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 
 # Directorio donde Django almacenará los archivos subidos (ej. comprobantes)
