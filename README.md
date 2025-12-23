@@ -4,7 +4,7 @@ MCL_FINANZA es una aplicación web orientada a la gestión financiera básica y 
 
 ## 🌐 Demo en línea
 
-**[https://mcl-finanza.vercel.app/](https://mcl-finanza.vercel.app/)**
+**[https://codearicos.pythonanywhere.com/](https://codearicos.pythonanywhere.com/)**
 
 ---
 
@@ -23,8 +23,9 @@ MCL_FINANZA es una aplicación web orientada a la gestión financiera básica y 
 - **Python**
 - **Django**
 - **HTML**
+- **css**
+- **javaScript**
 - **Git / GitHub**
-- **Vercel**
 
 ---
 
@@ -37,7 +38,6 @@ MCL_FINANZA/
 ├── static/
 ├── manage.py
 ├── requirements.txt
-├── vercel.json
 └── README.md
 ```
 
