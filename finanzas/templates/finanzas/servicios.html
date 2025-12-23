@@ -19,6 +19,18 @@
             padding: 0;
             box-sizing: border-box;
         }
+        
+        :root {
+            --sidebar-width: 280px;
+            --primary-color: #035087;
+            --secondary-color: #011b5c;
+            --text-color: #37474f;
+            --text-light: #78909c;
+            --white: #ffffff;
+            --shadow: 0 10px 35px rgba(33, 150, 243, 0.15);
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
         html, body {
             height: 100%;
@@ -176,7 +188,7 @@
             top: 20px;
             left: 20px;
             z-index: 1003;
-            background: #ff6b6b;
+            background:#035087;
             color: white;
             border: none;
             padding: 12px;
@@ -188,7 +200,7 @@
         }
 
         .menu-toggle:hover {
-            background: #ee5a24;
+            background: #035087;
             transform: scale(1.05);
         }
 
@@ -608,15 +620,47 @@
             box-shadow: 0 4px 12px rgba(240, 98, 146, 0.3);
         }
 
-        /* TABLA */
+        /* TABLA CON ENCABEZADO FIJO */
+        .table-header {
+            background: linear-gradient(135deg, #035087 0%, #1e88e5 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(3, 80, 135, 0.3);
+        }
+
+        .table-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-header h2 i {
+            font-size: 24px;
+        }
+
         .table-container {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            padding: 30px;
-            border-radius: 20px;
+            border-radius: 0 0 20px 20px;
             box-shadow: 0 10px 40px rgba(33, 150, 243, 0.12);
             border: 1px solid rgba(66, 165, 245, 0.2);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .table-wrapper {
             overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
         }
 
         .controls-bar {
@@ -635,7 +679,7 @@
         }
 
         .btn-add {
-            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+            background: linear-gradient(135deg, #4cfb5e 0%, #025294 100%);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -661,10 +705,14 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            min-width: 800px;
         }
 
         thead {
             background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         thead th {
@@ -680,11 +728,11 @@
         }
 
         thead th:first-child {
-            border-radius: 12px 0 0 0;
+            border-radius: 0;
         }
 
         thead th:last-child {
-            border-radius: 0 12px 0 0;
+            border-radius: 0;
         }
 
         tbody tr {
@@ -710,17 +758,10 @@
             vertical-align: middle;
         }
 
-        tbody tr:last-child td:first-child {
-            border-radius: 0 0 0 12px;
-        }
-
-        tbody tr:last-child td:last-child {
-            border-radius: 0 0 12px 0;
-        }
-
         tbody tr:last-child td {
             border-bottom: none;
         }
+
 
         .badge {
             padding: 6px 12px;
@@ -1123,212 +1164,304 @@
         .read-more-btn:hover {
             color: #1e88e5;
         }
+/* ============================================================================
+   MEDIA QUERIES - SISTEMA ADAPTATIVO PROFESIONAL
+   ============================================================================ */
+/* Móviles pequeños (480px - 767px) */
+@media (max-width: 767px) {
+    .content {
+        padding: 10px;
+    }
 
-        /* Desktop specific styles */
-        @media (min-width: 993px) {
-            .sidebar-left {
-                position: fixed;
-                transform: translateX(0);
-                height: 100vh;
-            }
+    .page-header h1 {
+        font-size: 20px;
+        gap: 8px;
+    }
 
-            .main-container {
-                margin-left: 280px;
-                min-height: 100vh;
-            }
+    .page-subtitle {
+        font-size: 13px;
+    }
 
-            .menu-toggle {
-                display: none;
-            }
+    /* Dashboard cards: 1 columna en móviles */
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 
-            .sidebar-overlay {
-                display: none !important;
-            }
-        }
+    /* Asegurar que los valores sigan centrados en móviles */
+    .card-total, .card-usd, .card-pesos {
+        padding: 20px;
+        min-height: 140px;
+    }
 
-        /* Mobile Responsive */
-        @media (max-width: 992px) {
-            .sidebar-left {
-                transform: translateX(-100%);
-                width: 100%;
-                max-width: 300px;
-                height: 100vh;
-            }
+    .card-value {
+        font-size: 24px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-            .sidebar-left.mobile-open {
-                transform: translateX(0);
-            }
+    .card-icon {
+        font-size: 28px;
+        width: 50px;
+        height: 50px;
+    }
 
-            .sidebar-overlay.active {
-                display: block;
-                opacity: 1;
-            }
+    /* Botón agregar en móviles - centrado */
+    .btn-add {
+        font-size: 12px;
+        padding: 10px 16px;
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+    }
 
-            .menu-toggle {
-                display: block;
-            }
+    .header-actions {
+        gap: 8px;
+    }
 
-            .main-container {
-                margin-left: 0;
-                padding: 20px;
-            }
+    .btn-icon-action {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
 
-            .main-container.expanded {
-                margin-left: 0;
-            }
+    .table-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
 
-            .page-header {
-                padding: 20px;
-                margin-bottom: 20px;
-            }
+    .table-header h2 {
+        font-size: 16px;
+        text-align: center;
+    }
 
-            .page-header h1 {
-                font-size: 24px;
-            }
+    thead th {
+        padding: 10px 6px;
+        font-size: 10px;
+        min-width: 70px; /* Más pequeño para móviles */
+    }
 
-            .page-header-top {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+    tbody td {
+        padding: 10px 6px;
+        font-size: 11px;
+        min-width: 70px; /* Más pequeño para móviles */
+    }
 
-            .header-actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
+    .img-thumbnail {
+        width: 35px;
+        height: 35px;
+    }
 
-            .dashboard-cards {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
+    .btn-action {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
 
-            .filters-panel {
-                padding: 20px;
-            }
+    .badge {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+}
+/* 1. ESCRITORIO (Pantallas grandes) */
+@media (min-width: 993px) {
+    .sidebar-left {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--sidebar-width, 280px);
+        height: 100vh;
+        transform: translateX(0);
+        z-index: 1000;
+    }
 
-            .filters-form {
-                grid-template-columns: 1fr;
-            }
+    .main-container {
+        margin-left: var(--sidebar-width, 280px);
+        width: calc(100% - var(--sidebar-width, 280px));
+        min-height: 100vh;
+        transition: margin-left 0.3s ease;
+    }
 
-            .filters-actions {
-                flex-direction: column;
-            }
+    .menu-toggle, .sidebar-overlay {
+        display: none !important;
+    }
+}
 
-            .table-container {
-                padding: 15px;
-            }
+/* 2. TABLETS Y MÓVILES (Max 992px) */
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 280px;
+    }
 
-            .controls-bar {
-                flex-direction: column;
-                margin-bottom: 20px;
-            }
+    .sidebar-left {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--sidebar-width);
+        height: 100vh;
+        transform: translateX(-100%);
+        z-index: 2000; /* Por encima de todo */
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: none;
+    }
 
-            .controls-right {
-                width: 100%;
-                flex-direction: column;
-                order: -1;
-            }
+    .sidebar-left.mobile-open {
+        transform: translateX(0);
+        box-shadow: 15px 0 30px rgba(0,0,0,0.2);
+    }
 
-            .btn-add {
-                width: 100%;
-                justify-content: center;
-                padding: 14px 16px;
-                font-size: 14px;
-                z-index: 100;
-                position: relative;
-            }
+    /* Overlay Mejorado */
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(3px); /* Efecto moderno de desenfoque */
+        z-index: 1500;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
 
-            .btn-add:active {
-                transform: scale(0.98);
-            }
+    .sidebar-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
 
-            table {
-                font-size: 12px;
-            }
+    .main-container {
+        margin-left: 0 !important;
+        width: 100%;
+        padding: 15px;
+        padding-top: 70px; /* Espacio para el botón de menú flotante */
+    }
 
-            thead th {
-                padding: 12px 8px;
-                font-size: 11px;
-            }
+    /* Botón Hamburguesa */
+    .menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        width: 45px;
+        height: 45px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 12px;
+        z-index: 1800;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
 
-            tbody td {
-                padding: 12px 8px;
-                font-size: 12px;
-            }
+    /* Header y Cards */
+    .page-header {
+        padding: 20px;
+        border-radius: 15px;
+    }
 
-            /* MODAL RESPONSIVE */
-            .modal-content {
-                padding: 20px;
-                width: 95%;
-                max-height: 95vh;
-            }
+    .page-header-top {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
 
-            .modal-header h2 {
-                font-size: 20px;
-            }
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
 
-            .form-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
+    .dashboard-cards {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 15px;
+    }
 
-            .modal-actions {
-                flex-direction: column;
-            }
+    /* Tablas */
+    .table-container {
+        padding: 10px;
+        border-radius: 12px;
+        overflow-x: auto; /* Permite scroll lateral */
+        -webkit-overflow-scrolling: touch;
+    }
 
-            .btn-submit, .btn-cancel {
-                width: 100%;
-                justify-content: center;
-            }
+    table {
+        min-width: 700px; /* Evita que la tabla se comprima demasiado */
+    }
 
-            .description-modal-content {
-                padding: 20px;
-                width: 95%;
-                max-height: 80vh;
-            }
-        }
+    /* Modales */
+    .modal-content {
+        width: 95% !important;
+        margin: 10px auto;
+        padding: 20px;
+        border-radius: 20px;
+    }
 
-        @media (max-width: 480px) {
-            .page-header h1 {
-                font-size: 18px;
-                gap: 8px;
-            }
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+}
 
-            .btn-add {
-                font-size: 12px;
-                padding: 10px 16px;
-            }
+/* Móviles muy pequeños (hasta 480px) */
+@media (max-width: 480px) {
+    .content {
+        padding: 8px;
+    }
 
-            .header-actions {
-                gap: 8px;
-            }
+    .page-header {
+        padding: 15px;
+    }
 
-            .btn-icon-action {
-                width: 36px;
-                height: 36px;
-                font-size: 16px;
-            }
+    .page-header h1 {
+        font-size: 18px;
+    }
 
-            thead th {
-                padding: 10px 6px;
-                font-size: 10px;
-            }
+    .filters-panel {
+        padding: 15px;
+    }
 
-            tbody td {
-                padding: 10px 6px;
-                font-size: 11px;
-            }
+    .filters-form {
+        gap: 10px;
+    }
 
-            .btn-action {
-                width: 28px;
-                height: 28px;
-                font-size: 11px;
-            }
+    .filters-actions {
+        flex-direction: column;
+    }
 
-            .badge {
-                font-size: 10px;
-                padding: 4px 8px;
-            }
-        }
+    .btn-apply, .btn-clear {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Ajustes de texto para móviles muy pequeños */
+    .card-title {
+        font-size: 12px;
+    }
+
+    .card-value {
+        font-size: 20px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .descripcion-corta {
+        max-width: 120px;
+    }
+
+    .btn-ver-mas {
+        font-size: 10px;
+    }
+}
+
     </style>
 </head>
 
@@ -1383,7 +1516,10 @@
         </div>
 
         <div class="sidebar-footer">
-            <p>AMLAN FINANCE V 0.0.0</p>
+            <small>
+                MLAN FINANCE © 2025  V{{ version }} 
+                <!-- Debug: {{ version|default:"NO_VERSION" }} -->
+            </small>
         </div>
     </aside>
 
@@ -1489,16 +1625,19 @@
             </div>
 
             <!-- TABLA -->
-            <div class="table-container">
-                <div class="controls-bar">
-                    <div class="controls-right">
-                        <button class="btn-add" id="btnAdd">
-                            <i class="fas fa-plus"></i>
-                            <span>Agregar Pago</span>
-                        </button>
-                    </div>
+           <div class="table-container">
+                <div class="table-header">
+                    <h2>
+                        <i class="fas fa-file-invoice-dollar"></i>
+                       Pagos De  Servicios
+                    </h2>
+                    <button class="btn-add" id="btnAdd">
+                        <i class="fas fa-plus"></i>
+                        <span>Agregar</span>
+                    </button>
                 </div>
 
+                <div class="table-wrapper"></div>
                 <div id="emptyState" style="display: none;">
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
@@ -1948,7 +2087,7 @@ function renderTable() {
         };
         
         const descripcion = service.descripcion || service.notas || 'Sin descripción';
-        const descripcionCorta = descripcion.length > 50 ? descripcion.substring(0, 50) + '...' : descripcion;
+        const descripcionCorta = descripcion.length > 5 ? descripcion.substring(0, 5) + '...' : descripcion;
         
         row.innerHTML = `
             <td>${new Date(service.fecha).toLocaleDateString('es-DO')}</td>
@@ -1958,18 +2097,19 @@ function renderTable() {
             <td>${service.proveedor || 'N/A'}</td>
             <td>
                 ${descripcionCorta}
-                ${descripcion.length > 50 ? `<button class="read-more-btn" onclick="showFullNotes('${descripcion.replace(/'/g, "\\'")}')">Leer más</button>` : ''}
+                ${descripcion.length > 10 ? `<button class="read-more-btn" onclick="showFullNotes('${descripcion.replace(/'/g, "\\'")}')">Leer más</button>` : ''}
             </td>
             <td>
                 <div class="actions">
-                    <button class="btn-action btn-download" onclick="downloadPDF(${service.id})" title="Descargar PDF">
-                        <i class="fas fa-download"></i>
-                    </button>
+
                     <button class="btn-action btn-edit" onclick="editService(${service.id})" title="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn-action btn-delete" onclick="deleteService(${service.id})" title="Eliminar">
                         <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn-action btn-download" onclick="downloadPDF(${service.id})" title="Descargar PDF">
+                        <i class="fas fa-file-pdf"></i>
                     </button>
                 </div>
             </td>

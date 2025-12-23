@@ -24,8 +24,8 @@ load_dotenv()
 # SECRET_KEY = 'django-insecure-6amk(11q7n4-e3y13k!vb0@$6lo@5me-+bnjmofia&2zwf%9v%'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
 
+DEBUG = os.getenv("DEBUG", "False") == "True"
 # ALLOWED_HOSTS = []
 # settings.py
 
@@ -85,17 +85,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.mysql',
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.mysql',
+        # 'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME'),
         'USER': os.environ.get('DB_USER'),
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
         'OPTIONS': {
-            # 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'sslmode': 'require',
-            'options': '-c default_transaction_read_only=off'
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'", # esto es para mysql
+            # 'sslmode': 'require',
+            # 'options': '-c default_transaction_read_only=off'
         }
     }
 }
@@ -155,10 +155,9 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
-
-# Directorio donde Django almacenará los archivos subidos (ej. comprobantes)
+# Directorio donde Django almacenará los arachivos subidos (ej. comprobantes)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'mediafiles')
+MEDIA_ROOT = os.path.join(BASE_DIR,  'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

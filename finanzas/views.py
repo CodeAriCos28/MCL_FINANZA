@@ -5,6 +5,7 @@ import os
 import json
 from decimal import Decimal
 from datetime import datetime, timedelta
+from finanzas import VERSION
 
 # ----------------------------------------------------------------------
 # 2. IMPORTS DE TERCEROS (Third-Party)
@@ -28,6 +29,7 @@ from django.db.models.functions import Coalesce, TruncMonth, TruncDay
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.contrib.messages import get_messages
 
 # ----------------------------------------------------------------------
 # 4. IMPORTS DE APLICACIONES LOCALES
@@ -46,9 +48,9 @@ def login(request):
             # Login exitoso
             auth_login(request, user)
             messages.success(request, f'¡Bienvenido {user.username}!')
-            return redirect('convertidor')  # Redirigir al dashboard después del login
+            return redirect('convertidor')  # Redirigir inmediatamente
         else:
-            # Credenciales inválidas
+            # Credenciales inválidas - mostrar error en la misma página
             messages.error(request, 'Usuario o contraseña incorrectos')
             return render(request, 'finanzas/index.html')
     
@@ -99,7 +101,18 @@ def convertidor_index(request):
     # Obtener últimos 5 movimientos
     ultimos_movimientos = movimientos.order_by('-fecha')[:5]
     
+    # Obtener mensajes y convertirlos a JSON seguro
+    messages_data = []
+    for message in get_messages(request):
+        messages_data.append({
+            'text': str(message),
+            'tags': message.tags
+        })
+    
+    # UN solo contexto con TODAS las variables
     context = {
+        'user': request.user,
+        'django_messages_json': json.dumps(messages_data),
         'movimientos': ultimos_movimientos,
         'total_usd': total_usd,
         'total_rd': total_rd,
@@ -108,6 +121,7 @@ def convertidor_index(request):
         'fecha_fin': fecha_fin,
         'descripcion': descripcion,
         'monto_min': monto_min,
+        'version': VERSION,  # ← Aquí está la versión
     }
     
     return render(request, 'finanzas/convertidor.html', context)
@@ -911,15 +925,27 @@ def gastos_index(request):
                 'estado': gasto.estado,
                 'tipo_comprobante': gasto.tipo_comprobante,
                 'numero_comprobante': gasto.numero_comprobante,
-                'proveedor': gasto.proveedor
+                'proveedor': gasto.proveedor,
+                'imagen_url': gasto.imagen.url if gasto.imagen else None,
+                'tiene_imagen': bool(gasto.imagen)
             })
         
         # Obtener categorías para filtros - CORREGIDO
-        # Usar CATEGORIAS_GASTOS importado directamente
         from finanzas.models import CATEGORIAS_GASTOS
         categorias = CATEGORIAS_GASTOS
         
+        # Obtener mensajes Django
+        messages_data = []
+        from django.contrib.messages import get_messages
+        for message in get_messages(request):
+            messages_data.append({
+                'text': str(message),
+                'tags': message.tags
+            })
+        
+        # CONTEXTO CON VERSIÓN
         context = {
+            'user': request.user,
             'gastos': gastos_data,
             'categorias': categorias,
             'entradas': entradas,
@@ -928,7 +954,9 @@ def gastos_index(request):
                 'fecha_desde': fecha_desde,
                 'fecha_hasta': fecha_hasta,
                 'categoria': categoria,
-            }
+            },
+            'django_messages_json': json.dumps(messages_data),
+            'version': VERSION,  # ← AÑADIR AQUÍ LA VERSIÓN
         }
         
         # Si es una petición AJAX, retornar JSON
@@ -952,9 +980,9 @@ def gastos_index(request):
             'categorias': CATEGORIAS_GASTOS,
             'entradas': [],
             'totales': calcular_totales(),
-            'filtros': {}
+            'filtros': {},
+            'version': VERSION,  # ← VERSIÓN TAMBIÉN EN CASO DE ERROR
         })
-
 def calcular_saldo_entrada(entrada):
     """Calcula el saldo disponible de una entrada - VERSIÓN CORREGIDA"""
     if not entrada:
@@ -967,6 +995,7 @@ def calcular_saldo_entrada(entrada):
         ).aggregate(total=Sum('monto'))
         total_gastos = gastos_activos['total'] or Decimal('0.00')
         
+
         return entrada.monto_pesos - total_gastos
     except Exception as e:
         print(f"Error calculando saldo: {str(e)}")
@@ -975,19 +1004,28 @@ def calcular_saldo_entrada(entrada):
 def calcular_totales():
     """Calcula los totales generales del sistema - VERSIÓN CORREGIDA"""
     try:
+        # Total de todas las entradas
         total_entradas = MovimientoEntrada.objects.aggregate(
             total=Sum('monto_pesos')
         )['total'] or Decimal('0.00')
         
+        # Total de gastos activos
         total_gastos = Gasto.objects.filter(estado='ACTIVO').aggregate(
             total=Sum('monto')
         )['total'] or Decimal('0.00')
         
-        balance = total_entradas - total_gastos
+        # Total de servicios activos
+        total_servicios = ServicioPago.objects.filter(
+            estado='ACTIVO'
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+        
+        # Balance restante = Entradas - Gastos - Servicios
+        balance = total_entradas - total_gastos - total_servicios 
         
         return {
             'total_disponible': total_entradas,
             'total_gastado': total_gastos,
+            'total_servicios': total_servicios,  # Opcional: si quieres mostrar este valor
             'balance_restante': balance
         }
     except Exception as e:
@@ -995,6 +1033,7 @@ def calcular_totales():
         return {
             'total_disponible': Decimal('0.00'),
             'total_gastado': Decimal('0.00'),
+            'total_servicios': Decimal('0.00'),
             'balance_restante': Decimal('0.00')
         }
 def gastos_crear(request):
@@ -1580,7 +1619,9 @@ def api_gastos(request):
                 'estado': gasto.estado,
                 'tipo_comprobante': getattr(gasto, 'tipo_comprobante', 'SIN_COMPROBANTE'),
                 'numero_comprobante': getattr(gasto, 'numero_comprobante', ''),
-                'proveedor': getattr(gasto, 'proveedor', '')
+                'proveedor': getattr(gasto, 'proveedor', ''),
+                'imagen_url': gasto.imagen.url if gasto.imagen else None,
+                'tiene_imagen': bool(gasto.imagen)
             })
         
         return JsonResponse({
@@ -1617,19 +1658,20 @@ def api_categorias(request):
 
 def api_dashboard(request):
     """
-    API para obtener datos del dashboard (usado por gastos.html)
+    API para obtener datos del dashboard (usado por gastos.html) - VERSIÓN CORREGIDA
     """
     try:
         # Obtener parámetros de filtro
         fecha_desde = request.GET.get('fecha_desde', '')
         fecha_hasta = request.GET.get('fecha_hasta', '')
         categoria = request.GET.get('categoria', '')
-        
-        # Calcular totales con filtros
+
+        # 1. Total de todas las entradas (sin filtrar por fecha)
         total_entradas = MovimientoEntrada.objects.aggregate(
             total=Sum('monto_pesos')
         )['total'] or Decimal('0.00')
-        
+
+        # 2. Total de gastos activos (con filtros si existen)
         gastos = Gasto.objects.filter(estado='ACTIVO')
         
         if fecha_desde:
@@ -1638,27 +1680,47 @@ def api_dashboard(request):
             gastos = gastos.filter(fecha__lte=fecha_hasta)
         if categoria:
             gastos = gastos.filter(categoria=categoria)
-        
+            
         total_gastos = gastos.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-        balance = total_entradas - total_gastos
+
+        # 3. Total de servicios activos (con filtros si existen)
+        servicios = ServicioPago.objects.filter(estado='ACTIVO')
         
+        if fecha_desde:
+            servicios = servicios.filter(fecha__gte=fecha_desde)
+        if fecha_hasta:
+            servicios = servicios.filter(fecha__lte=fecha_hasta)
+            
+        total_servicios = servicios.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        # 4. Calcular balance: Entradas - Gastos - Servicios
+        balance = total_entradas - total_gastos - total_servicios
+
+        # Asegurarse de que el balance no sea negativo
+        if balance < Decimal('0.00'):
+            balance = Decimal('0.00')
+
         dashboard_data = {
             'total_disponible': float(total_entradas),
             'total_gastado': float(total_gastos),
+            'total_servicios': float(total_servicios),
             'balance_restante': float(balance)
         }
-        
+
         return JsonResponse({
             'success': True,
             'dashboard': dashboard_data
         })
-        
+
     except Exception as e:
+        print(f"Error en api_dashboard: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         return JsonResponse({
             'success': False,
             'error': str(e)
         })
-        
 def api_categorias(request):
     """
     API para obtener categorías (usado por gastos.html) - CORREGIDO
@@ -1829,8 +1891,7 @@ def servicios_index(request):
             servicios = servicios.filter(estado__in=['ACTIVO', 'EDITADO'])
         else:
             servicios = servicios.filter(estado=estado)
-        print(f"Total servicios encontrados: {servicios.count()}")
-        print(f"Estados encontrados: {servicios.values_list('estado', flat=True).distinct()}")
+        
         # Aplicar filtros
         if fecha_desde:
             servicios = servicios.filter(fecha__gte=fecha_desde)
@@ -1851,7 +1912,7 @@ def servicios_index(request):
             request.content_type == 'application/json'
         )
         
-        # Si es petición AJAX, devolver JSON
+        # Si es petición AJAX, devolver JSON (NO incluir versión en JSON)
         if is_ajax:
             servicios_data = []
             for servicio in servicios:
@@ -1900,7 +1961,18 @@ def servicios_index(request):
             proveedor__exact=''
         ).values_list('proveedor', flat=True).distinct().order_by('proveedor')
         
+        # Obtener mensajes Django
+        from django.contrib.messages import get_messages
+        messages_data = []
+        for message in get_messages(request):
+            messages_data.append({
+                'text': str(message),
+                'tags': message.tags
+            })
+        
+        # CONTEXTO CON VERSIÓN
         context = {
+            'user': request.user,
             'servicios': servicios,
             'tipos_servicio': tipos_servicio,
             'proveedores': proveedores,
@@ -1913,6 +1985,8 @@ def servicios_index(request):
                 'proveedor': proveedor,
                 'estado': estado,
             },
+            'django_messages_json': json.dumps(messages_data),
+            'version': VERSION,  # ← AÑADIR AQUÍ LA VERSIÓN
         }
         
         return render(request, 'finanzas/servicios.html', context)
@@ -1930,8 +2004,23 @@ def servicios_index(request):
                 'servicios': [],
                 'totales': {'total_servicios': 0, 'balance': 0}
             }, status=500)
-        raise
-
+        
+        # En caso de error, mostrar template con datos vacíos pero con versión
+        try:
+            from .models import SERVICIOS_TIPOS
+            tipos_servicio = SERVICIOS_TIPOS
+        except:
+            tipos_servicio = []
+        
+        return render(request, 'finanzas/servicios.html', {
+            'servicios': [],
+            'tipos_servicio': tipos_servicio,
+            'proveedores': [],
+            'entradas': [],
+            'totales': {'total_servicios': 0, 'balance': 0},
+            'filtros': {},
+            'version': VERSION,  # ← VERSIÓN TAMBIÉN EN CASO DE ERROR
+        })
 @transaction.atomic
 def servicios_crear(request):
     """Crear nuevo pago de servicio - Soporta AJAX"""
@@ -2467,8 +2556,22 @@ def dashboard_index(request):
     Renderiza la plantilla del dashboard sin datos
     Los datos se obtienen via API desde JavaScript
     """
-    return render(request, "finanzas/dashboard.html")
-
+    # Obtener mensajes Django
+    from django.contrib.messages import get_messages
+    messages_data = []
+    for message in get_messages(request):
+        messages_data.append({
+            'text': str(message),
+            'tags': message.tags
+        })
+    
+    context = {
+        'user': request.user,
+        'django_messages_json': json.dumps(messages_data),
+        'version': VERSION,  # ← AÑADIR AQUÍ LA VERSIÓN
+    }
+    
+    return render(request, "finanzas/dashboard.html", context)
 # =============================================================================
 # API ENDPOINT PARA DATOS DEL DASHBOARD
 # =============================================================================
