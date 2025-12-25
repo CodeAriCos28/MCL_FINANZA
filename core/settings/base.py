@@ -29,13 +29,14 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # ALLOWED_HOSTS = []
 # settings.py
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', ' codearicos.pythonanywhere.com ']
+# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', ' codearicos.pythonanywhere.com ']
+ALLOWED_HOSTS = ['*']
 
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.dev',  # Para permitir cualquier subdominio de ngrok-free.dev
-    'https://omega-neighbourless-sublabially.ngrok-free.dev' # La URL específica
-]
+# CSRF_TRUSTED_ORIGINS = [
+    # 'https://*.ngrok-free.dev',  # Para permitir cualquier subdominio de ngrok-free.dev
+    # 'https://omega-neighbourless-sublabially.ngrok-free.dev' # La URL específica
+# ]
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8003', 'http://localhost:8003']
 
 # Application definition
 
@@ -58,6 +59,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.cache.UpdateCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -144,9 +148,32 @@ DATE_FORMAT = 'd/m/Y'
 DATETIME_FORMAT = 'd/m/Y H:i:s'
 
 
-LOGIN_URL = '/login/'  # Instead of the default '/accounts/login/'
-LOGIN_REDIRECT_URL = '/dashboard/' # Where to redirect after login
+# LOGIN_URL = '/login/'  # Instead of the default '/accounts/login/'
+LOGIN_REDIRECT_URL = '/convertidor/' # Where to redirect after login
 LOGOUT_REDIRECT_URL = '/'  # Where to redirect after logout
+
+# Tiempo de vida de la sesión en segundos (10 minutos)
+SESSION_COOKIE_AGE = 600
+
+# Refresca la sesión en cada petición (mantiene al usuario activo si navega)
+SESSION_SAVE_EVERY_REQUEST = True
+
+# La sesión expira al cerrar el navegador
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# URL a la que redirigir si se requiere login (usa el 'name' de tu URL de login)
+LOGIN_URL = 'index'
+
+CSRF_COOKIE_SECURE = False  # Cambiar a True en producción con HTTPS
+CSRF_USE_SESSIONS = False
+# Elimina la sesión de la base de datos al cerrar
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
+
+# Forzar a que la cookie expire de inmediato al cerrar el navegador
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# No permitir que la sesión se use en múltiples pestañas si una ya cerró
+SESSION_COOKIE_HTTPONLY = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -160,11 +187,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-
-print("=" * 80)
-print(f"BASE_DIR: {BASE_DIR}")
-print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
-print("=" * 80)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
