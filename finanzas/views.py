@@ -5,15 +5,13 @@ import os
 import json
 from decimal import Decimal
 from datetime import datetime, timedelta
-from finanzas import VERSION
+
 
 # ----------------------------------------------------------------------
 # 2. IMPORTS DE TERCEROS (Third-Party)
 # ----------------------------------------------------------------------
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib.pagesizes import letter, A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
@@ -21,7 +19,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
 from reportlab.platypus.flowables import HRFlowable, KeepTogether
-from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
@@ -30,7 +27,9 @@ from io import BytesIO
 # 3. IMPORTS DE DJANGO
 # ----------------------------------------------------------------------
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+from django.contrib.auth import authenticate,logout, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -40,12 +39,14 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib.messages import get_messages
+from django.views import View
 
 # ----------------------------------------------------------------------
 # 4. IMPORTS DE APLICACIONES LOCALES
 # ----------------------------------------------------------------------
+from finanzas import VERSION
 from finanzas.models import Gasto, MovimientoEntrada, ServicioPago, SERVICIOS_TIPOS
-
+@ensure_csrf_cookie
 def login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -53,6 +54,17 @@ def login(request):
         
         # Autenticar usuario
         user = authenticate(request, username=username, password=password)
+            # Obtener mensajes y convertirlos a JSON seguro
+        messages_data = []
+        for message in get_messages(request):
+            messages_data.append({
+                'text': str(message),
+                'tags': message.tags
+            })
+            
+        context = {
+            'django_messages_json': json.dumps(messages_data),
+        }
         
         if user is not None:
             # Login exitoso
@@ -69,10 +81,9 @@ def login(request):
 
 def logout_view(request):
     """Vista para cerrar sesión"""
-    from django.contrib.auth import logout
     logout(request)
     messages.success(request, 'Sesión cerrada exitosamente')
-    return redirect('login')
+    return redirect('index')
 
 
 
@@ -80,7 +91,7 @@ def logout_view(request):
 # =============================================================================
 # MÓDULO CONVERTIDOR - VISTAS
 # =============================================================================
-
+@login_required
 def convertidor_index(request):
     """
     Vista principal del módulo convertidor
@@ -139,7 +150,7 @@ def convertidor_index(request):
 # =============================================================================
 # REGISTRAR MOVIMIENTO - CON MANEJO DE IMÁGENES
 # =============================================================================
-
+@transaction.atomic
 def convertidor_registrar(request):
     """
     Maneja el registro de nuevos movimientos de conversión - VERSIÓN CORREGIDA
@@ -278,7 +289,7 @@ def convertidor_historial(request):
 # =============================================================================
 # EDITAR MOVIMIENTO  DEL  CONVERTIDOR
 # =============================================================================
-
+@transaction.atomic
 def convertidor_editar(request, id):
     """
     Edita un movimiento existente CON MANEJO DE IMÁGENES
@@ -382,7 +393,7 @@ def convertidor_editar(request, id):
 # =============================================================================
 # ELIMINAR MOVIMIENTO - CON MANEJO DE IMÁGENES  DEL  CONVERTIDOR
 # =============================================================================
-
+@transaction.atomic
 def convertidor_eliminar(request, id):
     """
     Elimina un movimiento si no tiene gastos ni servicios asociados CON MANEJO DE IMÁGENES
@@ -589,7 +600,7 @@ def convertidor_reporte_pdf(request):
     
     # Crear celda con los títulos
     titles_cell = [
-        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Paragraph("MLAN FINANCE Sistema de Reportes Financieros", title_style),
         Spacer(1, 4),
         Paragraph("REPORTE HISTÓRICO DE CONVERSIONES", 
                   ParagraphStyle(
@@ -784,8 +795,8 @@ def convertidor_reporte_pdf(request):
     # Crear observaciones dinámicas
     observaciones_text = "Reporte generado automáticamente por el sistema. "
     if total_movimientos > 0:
-        observaciones_text += f"Se encontraron {total_movimientos} conversiones. "
-        observaciones_text += f"Total convertido: ${total_usd:,.2f} USD → ${total_pesos:,.2f} DOP. "
+        observaciones_text += f"Se encontraron {total_movimientos} conversiones (Regiastros). "
+        observaciones_text += f"Total convertido: ${total_usd:,.2f} USD (Dolores) → ${total_pesos:,.2f} DOP (Peso Dominicano). "
     
     if fecha_inicio or fecha_fin:
         observaciones_text += f"Período del reporte: {fecha_inicio_str} al {fecha_fin_str}. "
@@ -819,8 +830,8 @@ def convertidor_reporte_pdf(request):
     )
     
     elements.append(Spacer(1, 10))
-    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
-    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas  MLAN FINANCE | Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Este reporte constituye documentación oficial del sistema", footer_style))
     
     # Construir el PDF
     doc.build(elements)
@@ -831,7 +842,7 @@ def convertidor_reporte_pdf(request):
     
     # Crear respuesta HTTP
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="reporte_conversiones_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="reporte_conversiones_{datetime.now().strftime("%d/%m/%Y_%I:%M:%S")}.pdf"'
     response.write(pdf)
     
     return response
@@ -955,7 +966,7 @@ def convertidor_reporte_detalle_pdf(request, id):
     
     # Crear celda con los títulos - MISMO FORMATO QUE EL REPORTE HISTÓRICO
     titles_cell = [
-        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Paragraph("MLAN FINANCE Sistema de Reportes Financieros", title_style),
         Spacer(1, 4),
         Paragraph(f"REPORTE DETALLADO - MOVIMIENTO #{id}", 
                   ParagraphStyle(
@@ -1181,8 +1192,8 @@ def convertidor_reporte_detalle_pdf(request, id):
     )
     
     elements.append(Spacer(1, 10))
-    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
-    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas MLAN FINANCE | Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Este reporte constituye documentación oficial del sistema", footer_style))
     
     # Construir el PDF
     doc.build(elements)
@@ -1193,7 +1204,7 @@ def convertidor_reporte_detalle_pdf(request, id):
     
     # Crear respuesta HTTP
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="movimiento_{id}_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="movimiento_{id}_{datetime.now().strftime("%d/%m/%Y/%I:%M:%S")}.pdf"'
     response.write(pdf)
     
     return response
@@ -1365,7 +1376,7 @@ def convertidor_imprimir_todo(request):
     
     # Crear celda con los títulos
     titles_cell = [
-        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Paragraph("MLAN FINANCE Sistema de Reportes Financieros", title_style),
         Spacer(1, 4),
         Paragraph("REPORTE PARA IMPRESIÓN", 
                   ParagraphStyle(
@@ -1596,8 +1607,8 @@ def convertidor_imprimir_todo(request):
     )
     
     elements.append(Spacer(1, 8))  # Menos espacio
-    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
-    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas MLAN FINANCE | Generado el{datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Este reporte constituye documentación oficial del sistema", footer_style))
     
     # Construir el PDF
     doc.build(elements)
@@ -1609,7 +1620,7 @@ def convertidor_imprimir_todo(request):
     # Crear respuesta HTTP
     response = HttpResponse(content_type='application/pdf')
     # Para impresión, usar 'inline' para que se abra directamente en el navegador
-    response['Content-Disposition'] = f'inline; filename="impresion_conversiones_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="impresion_conversiones_{datetime.now().strftime("%d/%m/%Y_%I:%M:%S")}.pdf"'
     response.write(pdf)
     
     return response
@@ -1841,6 +1852,7 @@ def _to_decimal(value):
 # =============================================================================
 # VISTAS PRINCIPALES - VERSIÓN CORREGIDA DEL GASTOS
 # =============================================================================
+@login_required
 def gastos_index(request):
     """
     Vista principal del módulo de gastos - VERSIÓN CORREGIDA
@@ -1999,6 +2011,7 @@ def calcular_totales():
             'total_servicios': Decimal('0.00'),
             'balance_restante': Decimal('0.00')
         }
+@transaction.atomic
 def gastos_crear(request):
     """
     Crear un nuevo gasto - VERSIÓN CORREGIDA
@@ -2109,7 +2122,7 @@ def gastos_crear(request):
             messages.error(request, error_msg)
             return redirect('gastos_index')
         return JsonResponse({'success': False, 'error': error_msg})
-
+@transaction.atomic
 def gastos_editar(request, pk):
     """
     Editar un gasto existente - VERSIÓN CORREGIDA
@@ -2223,7 +2236,7 @@ def gastos_editar(request, pk):
             return JsonResponse({'success': False, 'error': error_msg})
     
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
-
+@transaction.atomic
 def gastos_eliminar(request, pk):
     """
     Eliminación lógica de un gasto
@@ -2835,7 +2848,7 @@ def servicios_proveedores(request):
             'error': str(e),
             'proveedores': []
         }, status=500)
-
+@login_required
 def servicios_index(request):
     """Vista principal del módulo servicios - Soporta AJAX"""
     try:
@@ -3513,7 +3526,7 @@ def servicios_imprimir_historial(request):
 # =============================================================================
 # VISTA PRINCIPAL DEL DASHBOARD
 # =============================================================================
-
+@login_required
 def dashboard_index(request):
     """
     Renderiza la plantilla del dashboard sin datos
