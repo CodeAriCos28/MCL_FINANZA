@@ -1,12 +1,13 @@
-
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tabla de Conversiones - Carmen</title>
-    
+    <title>Registro de Conversiones</title>
+
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo2.ico' %}?v=1">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Boxicons -->
@@ -416,7 +417,7 @@ body::before {
 }
 
 .card-total {
-    background: rgba(33, 150, 243, 0.12);
+    background: rgba(59, 253, 45, 0.101);
 }
 
 .card-usd {
@@ -424,7 +425,7 @@ body::before {
 }
 
 .card-pesos {
-    background: rgba(59, 253, 45, 0.101);
+    background: rgba(33, 150, 243, 0.12);
 }
 
 .card:hover {
@@ -508,8 +509,8 @@ body::before {
 }
 
 .card-value {
-    font-size: 32px;
-    font-weight: 900;
+    font-size: 30px;
+    font-weight: 800;
     color: #37474f;
     position: relative;
     z-index: 2;
@@ -703,7 +704,7 @@ select:focus {
    BOTÓN AGREGAR - ALINEADO A LA DERECHA
    ============================================================================= */
 .btn-add {
-    background: linear-gradient(135deg, #4cfb5e 0%, #025294 100%);
+    background:linear-gradient(135deg, #f6d365 0%, #fda085 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -1875,6 +1876,7 @@ textarea {
         display: none !important;
     }
 }
+
     </style>
 </head>
 
@@ -2186,7 +2188,7 @@ textarea {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script>
-        // =============================================================================
+// =============================================================================
 // CONFIGURACIÓN INICIAL
 // =============================================================================
 
@@ -2208,7 +2210,8 @@ toastr.options = {
     "showMethod": "fadeIn",
     "hideMethod": "fadeOut"
 };
- // Mostrar mensajes de Django
+
+// Mostrar mensajes de Django
 try {
     const djangoMessages = JSON.parse('{{ django_messages_json|escapejs }}');
     djangoMessages.forEach(message => {
@@ -2227,6 +2230,7 @@ try {
 } catch (error) {
     console.error('Error procesando mensajes Django:', error);
 }
+
 // Obtener token CSRF
 function getCSRFToken() {
     const name = 'csrftoken';
@@ -2255,16 +2259,14 @@ $.ajaxSetup({
 
 // URLs CORREGIDAS
 const API_URLS = {
-    // APIs para datos
     movimientos: '/api/convertidor/movimientos/',
     estadisticas: '/api/convertidor/estadisticas/',
-    
-    // Vistas principales
     crear: '/convertidor/registrar/',
     editar: (id) => `/convertidor/editar/${id}/`,
     eliminar: (id) => `/convertidor/eliminar/${id}/`,
     reporte_pdf: '/convertidor/reporte-pdf/',
-    reporte_detalle_pdf: (id) => `/convertidor/reporte-detalle-pdf/${id}/`
+    reporte_detalle_pdf: (id) => `/convertidor/reporte-detalle-pdf/${id}/`,
+    imprimir_todo: '/convertidor/imprimir-todo/'
 };
 
 // Estado de la aplicación
@@ -2326,6 +2328,120 @@ const totalUSD = document.getElementById('totalUSD');
 const totalPesos = document.getElementById('totalPesos');
 
 // =============================================================================
+// FUNCIONES DE ALERTAS Y NOTIFICACIONES
+// =============================================================================
+
+/**
+ * Mostrar mensaje de éxito
+ */
+function mostrarExito(mensaje, titulo = '¡Éxito!') {
+    toastr.success(mensaje, titulo);
+}
+
+/**
+ * Mostrar mensaje de error
+ */
+function mostrarError(mensaje, titulo = 'Error') {
+    toastr.error(mensaje, titulo);
+}
+
+/**
+ * Mostrar mensaje de advertencia
+ */
+function mostrarAdvertencia(mensaje, titulo = 'Advertencia') {
+    toastr.warning(mensaje, titulo);
+}
+
+/**
+ * Mostrar mensaje informativo
+ */
+function mostrarInfo(mensaje, titulo = 'Información') {
+    toastr.info(mensaje, titulo);
+}
+
+/**
+ * Mostrar SweetAlert de confirmación
+ */
+async function mostrarConfirmacion(titulo, texto, icono = 'warning') {
+    const result = await Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: icono,
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    });
+    return result.isConfirmed;
+}
+
+/**
+ * Mostrar SweetAlert de éxito
+ */
+function mostrarSweetExito(titulo, texto) {
+    Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: 'success',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Aceptar'
+    });
+}
+
+/**
+ * Mostrar SweetAlert de error
+ */
+function mostrarSweetError(titulo, texto) {
+    Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: 'error',
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Aceptar'
+    });
+}
+
+/**
+ * Mostrar SweetAlert de pregunta con opciones personalizadas
+ */
+async function mostrarPregunta(titulo, texto, confirmarTexto = 'Sí', cancelarTexto = 'No') {
+    const result = await Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: confirmarTexto,
+        cancelButtonText: cancelarTexto
+    });
+    return result.isConfirmed;
+}
+
+/**
+ * Mostrar SweetAlert de carga
+ */
+function mostrarLoading(mensaje = 'Procesando...') {
+    Swal.fire({
+        title: mensaje,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => {
+            Swal.showLoading();
+        }
+    });
+}
+
+/**
+ * Cerrar SweetAlert de carga
+ */
+function cerrarLoading() {
+    Swal.close();
+}
+
+// =============================================================================
 // FUNCIONES PRINCIPALES DE LA APLICACIÓN
 // =============================================================================
 
@@ -2334,6 +2450,7 @@ const totalPesos = document.getElementById('totalPesos');
  */
 async function cargarMovimientos() {
     try {
+        mostrarLoading('Cargando movimientos...');
         console.log('Cargando movimientos desde:', API_URLS.movimientos);
         
         const params = new URLSearchParams();
@@ -2351,18 +2468,27 @@ async function cargarMovimientos() {
             dataType: 'json'
         });
 
+        cerrarLoading();
+
         if (response.success) {
             appState.movimientos = response.movimientos;
             actualizarVistaMovimientos();
             actualizarEstadisticas();
+            
+            if (appState.movimientos.length === 0) {
+                mostrarInfo('No se encontraron movimientos con los filtros aplicados', 'Sin resultados');
+            } else {
+                mostrarInfo(`Se cargaron ${appState.movimientos.length} movimientos`, 'Movimientos cargados');
+            }
+            
             console.log('Movimientos cargados:', appState.movimientos.length);
         } else {
-            mostrarError('Error al cargar movimientos: ' + (response.error || 'Error desconocido'));
+            mostrarSweetError('Error', response.error || 'Error al cargar movimientos');
         }
     } catch (error) {
+        cerrarLoading();
         console.error('Error cargando movimientos:', error);
-        mostrarError('Error de conexión al cargar movimientos');
-        mostrarDatosEjemplo();
+        mostrarSweetError('Error de conexión', 'No se pudieron cargar los movimientos. Verifica tu conexión.');
     }
 }
 
@@ -2399,13 +2525,12 @@ async function cargarEstadisticas() {
     }
 }
 
-
 /**
  * Registrar nuevo movimiento
  */
 async function registrarMovimiento(formData) {
     try {
-        mostrarLoading(true);
+        mostrarLoading('Registrando movimiento...');
 
         const response = await $.ajax({
             url: API_URLS.crear,
@@ -2416,23 +2541,24 @@ async function registrarMovimiento(formData) {
             dataType: 'json'
         });
 
+        cerrarLoading();
+
         if (response.success) {
-            mostrarExito(response.message || 'Movimiento registrado exitosamente');
+            mostrarSweetExito('¡Movimiento registrado!', response.message || 'El movimiento se registró exitosamente');
             cerrarModal();
             await cargarMovimientos();
             await cargarEstadisticas();
         } else {
-            mostrarError(response.error || 'Error al registrar movimiento');
+            mostrarSweetError('Error al registrar', response.error || 'Error al registrar movimiento');
         }
     } catch (error) {
+        cerrarLoading();
         console.error('Error registrando movimiento:', error);
         if (error.responseJSON && error.responseJSON.error) {
-            mostrarError(error.responseJSON.error);
+            mostrarSweetError('Error de validación', error.responseJSON.error);
         } else {
-            mostrarError('Error de conexión al registrar movimiento');
+            mostrarSweetError('Error de conexión', 'No se pudo registrar el movimiento. Verifica tu conexión.');
         }
-    } finally {
-        mostrarLoading(false);
     }
 }
 
@@ -2441,7 +2567,7 @@ async function registrarMovimiento(formData) {
  */
 async function editarMovimiento(id, formData) {
     try {
-        mostrarLoading(true);
+        mostrarLoading('Actualizando movimiento...');
 
         const response = await $.ajax({
             url: API_URLS.editar(id),
@@ -2452,23 +2578,24 @@ async function editarMovimiento(id, formData) {
             dataType: 'json'
         });
 
+        cerrarLoading();
+
         if (response.success) {
-            mostrarExito(response.message || 'Movimiento actualizado exitosamente');
+            mostrarSweetExito('¡Movimiento actualizado!', response.message || 'El movimiento se actualizó exitosamente');
             cerrarModal();
             await cargarMovimientos();
             await cargarEstadisticas();
         } else {
-            mostrarError(response.error || 'Error al actualizar movimiento');
+            mostrarSweetError('Error al actualizar', response.error || 'Error al actualizar movimiento');
         }
     } catch (error) {
+        cerrarLoading();
         console.error('Error editando movimiento:', error);
         if (error.responseJSON && error.responseJSON.error) {
-            mostrarError(error.responseJSON.error);
+            mostrarSweetError('Error de validación', error.responseJSON.error);
         } else {
-            mostrarError('Error de conexión al actualizar movimiento');
+            mostrarSweetError('Error de conexión', 'No se pudo actualizar el movimiento. Verifica tu conexión.');
         }
-    } finally {
-        mostrarLoading(false);
     }
 }
 
@@ -2477,44 +2604,42 @@ async function editarMovimiento(id, formData) {
  */
 async function eliminarMovimiento(id) {
     try {
-        const result = await Swal.fire({
-            title: '¿Estás seguro?',
-            text: "Esta acción no se puede deshacer",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
+        const confirmado = await mostrarConfirmacion(
+            '¿Eliminar movimiento?',
+            'Esta acción no se puede deshacer. ¿Estás seguro de eliminar este movimiento?',
+            'warning'
+        );
+
+        if (!confirmado) {
+            mostrarInfo('Eliminación cancelada', 'Operación cancelada');
+            return;
+        }
+
+        mostrarLoading('Eliminando movimiento...');
+
+        const response = await $.ajax({
+            url: API_URLS.eliminar(id),
+            type: 'POST',
+            dataType: 'json'
         });
 
-        if (result.isConfirmed) {
-            mostrarLoading(true);
+        cerrarLoading();
 
-            const response = await $.ajax({
-                url: API_URLS.eliminar(id),
-                type: 'POST',
-                dataType: 'json'
-            });
-
-            if (response.success) {
-                mostrarExito(response.message || 'Movimiento eliminado exitosamente');
-                await cargarMovimientos();
-                await cargarEstadisticas();
-            } else {
-                mostrarError(response.error || 'Error al eliminar movimiento');
-            }
+        if (response.success) {
+            mostrarSweetExito('¡Movimiento eliminado!', response.message || 'El movimiento se eliminó exitosamente');
+            await cargarMovimientos();
+            await cargarEstadisticas();
+        } else {
+            mostrarSweetError('Error al eliminar', response.error || 'Error al eliminar movimiento');
         }
     } catch (error) {
+        cerrarLoading();
         console.error('Error eliminando movimiento:', error);
         if (error.responseJSON && error.responseJSON.error) {
-            mostrarError(error.responseJSON.error);
+            mostrarSweetError('Error', error.responseJSON.error);
         } else {
-            mostrarError('Error de conexión al eliminar movimiento');
+            mostrarSweetError('Error de conexión', 'No se pudo eliminar el movimiento. Verifica tu conexión.');
         }
-    } finally {
-        mostrarLoading(false);
     }
 }
 
@@ -2524,34 +2649,47 @@ async function eliminarMovimiento(id) {
 async function generarReportePDF() {
     try {
         if (appState.movimientos.length === 0) {
-            mostrarAdvertencia('No hay movimientos para generar reporte');
+            mostrarAdvertencia('No hay movimientos para generar reporte', 'Sin datos');
             return;
         }
 
-        const result = await Swal.fire({
-            title: 'Generar Reporte PDF',
-            text: '¿Desea generar un reporte PDF del historial de movimientos?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#2196f3',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, generar PDF',
-            cancelButtonText: 'Cancelar'
-        });
+        const confirmado = await mostrarPregunta(
+            'Generar Reporte PDF',
+            '¿Desea generar un reporte PDF del historial de movimientos?',
+            'Sí, generar PDF',
+            'Cancelar'
+        );
 
-        if (result.isConfirmed) {
-            mostrarInfo('Generando reporte PDF...');
-            
-            // Construir URL con filtros actuales
-            const params = new URLSearchParams(appState.filtros);
-            const url = `${API_URLS.reporte_pdf}?${params}`;
-            
-            // Abrir en nueva pestaña
-            window.open(url, '_blank');
+        if (!confirmado) {
+            mostrarInfo('Generación de PDF cancelada', 'Operación cancelada');
+            return;
         }
+
+        mostrarLoading('Generando reporte PDF...');
+        
+        // Construir URL con filtros actuales
+        const params = new URLSearchParams();
+        Object.keys(appState.filtros).forEach(key => {
+            if (appState.filtros[key]) {
+                params.append(key, appState.filtros[key]);
+            }
+        });
+        
+        const url = `${API_URLS.reporte_pdf}?${params}`;
+        
+        // Crear un enlace temporal para descargar el PDF
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.click();
+        
+        cerrarLoading();
+        mostrarExito('Reporte PDF generado exitosamente', 'PDF listo');
+        
     } catch (error) {
+        cerrarLoading();
         console.error('Error generando reporte PDF:', error);
-        mostrarError('Error al generar reporte PDF');
+        mostrarSweetError('Error', 'No se pudo generar el reporte PDF');
     }
 }
 
@@ -2560,14 +2698,82 @@ async function generarReportePDF() {
  */
 async function generarReporteDetallePDF(id) {
     try {
-        mostrarInfo('Generando reporte de detalle...');
+        const confirmado = await mostrarPregunta(
+            'Descargar Reporte Detallado',
+            '¿Desea descargar un reporte PDF detallado de este movimiento?',
+            'Sí, descargar',
+            'Cancelar'
+        );
+
+        if (!confirmado) {
+            mostrarInfo('Descarga cancelada', 'Operación cancelada');
+            return;
+        }
+
+        mostrarLoading('Generando reporte detallado...');
         
         const url = API_URLS.reporte_detalle_pdf(id);
-        window.open(url, '_blank');
+        
+        // Crear un enlace temporal para descargar el PDF
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.click();
+        
+        cerrarLoading();
+        mostrarExito('Reporte detallado generado exitosamente', 'PDF listo');
         
     } catch (error) {
+        cerrarLoading();
         console.error('Error generando reporte detalle:', error);
-        mostrarError('Error al generar reporte de detalle');
+        mostrarSweetError('Error', 'No se pudo generar el reporte detallado');
+    }
+}
+
+/**
+ * Manejar impresión de todo el historial
+ */
+async function manejarImpresion() {
+    try {
+        if (appState.movimientos.length === 0) {
+            mostrarAdvertencia('No hay movimientos para imprimir', 'Sin datos');
+            return;
+        }
+
+        const confirmado = await mostrarPregunta(
+            'Imprimir Historial',
+            '¿Desea imprimir todo el historial de movimientos?',
+            'Sí, imprimir',
+            'Cancelar'
+        );
+
+        if (!confirmado) {
+            mostrarInfo('Impresión cancelada', 'Operación cancelada');
+            return;
+        }
+
+        mostrarLoading('Preparando documento para impresión...');
+        
+        // Construir URL con filtros actuales
+        const params = new URLSearchParams();
+        Object.keys(appState.filtros).forEach(key => {
+            if (appState.filtros[key]) {
+                params.append(key, appState.filtros[key]);
+            }
+        });
+        
+        const url = `${API_URLS.imprimir_todo}?${params}`;
+        
+        // Abrir en nueva ventana para impresión
+        window.open(url, '_blank');
+        
+        cerrarLoading();
+        mostrarExito('Documento listo para imprimir', 'Impresión');
+        
+    } catch (error) {
+        cerrarLoading();
+        console.error('Error generando impresión:', error);
+        mostrarSweetError('Error', 'No se pudo generar el documento de impresión');
     }
 }
 
@@ -2684,7 +2890,7 @@ async function abrirEditarMovimiento(id) {
     try {
         const movimiento = appState.movimientos.find(m => m.id === id);
         if (!movimiento) {
-            mostrarError('Movimiento no encontrado');
+            mostrarSweetError('Error', 'Movimiento no encontrado');
             return;
         }
 
@@ -2692,7 +2898,7 @@ async function abrirEditarMovimiento(id) {
         abrirModalEdicion(movimiento);
     } catch (error) {
         console.error('Error abriendo edición:', error);
-        mostrarError('Error al cargar movimiento para editar');
+        mostrarSweetError('Error', 'Error al cargar movimiento para editar');
     }
 }
 
@@ -2791,6 +2997,7 @@ function aplicarFiltros() {
     };
 
     console.log('Aplicando filtros:', appState.filtros);
+    mostrarInfo('Aplicando filtros...', 'Filtros');
     cargarMovimientos();
     cargarEstadisticas();
 }
@@ -2815,9 +3022,9 @@ function limpiarFiltros() {
     };
 
     console.log('Filtros limpiados');
+    mostrarInfo('Filtros limpiados', 'Filtros');
     cargarMovimientos();
     cargarEstadisticas();
-    mostrarInfo('Filtros limpiados');
 }
 
 // =============================================================================
@@ -2868,13 +3075,13 @@ function manejarSubidaImagen(e) {
     if (file) {
         // Validar tipo de archivo
         if (!file.type.match('image.*')) {
-            mostrarError('Por favor selecciona un archivo de imagen válido');
+            mostrarSweetError('Error', 'Por favor selecciona un archivo de imagen válido (JPG, PNG, GIF)');
             return;
         }
 
         // Validar tamaño (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            mostrarError('La imagen no debe superar los 5MB');
+            mostrarSweetError('Error', 'La imagen no debe superar los 5MB');
             return;
         }
 
@@ -2882,6 +3089,7 @@ function manejarSubidaImagen(e) {
         reader.onload = (event) => {
             imagePreview.src = event.target.result;
             imagePreview.style.display = 'block';
+            mostrarExito('Imagen cargada exitosamente', 'Imagen lista');
         };
         reader.readAsDataURL(file);
     }
@@ -2896,6 +3104,16 @@ function manejarSubidaImagen(e) {
  */
 function manejarEnvioFormulario(event) {
     event.preventDefault();
+
+    // Validar formulario
+    const fecha = document.getElementById('fecha').value;
+    const montoUsd = document.getElementById('monto_usd').value;
+    const tasaCambio = document.getElementById('tasa_cambio').value;
+
+    if (!fecha || !montoUsd || !tasaCambio) {
+        mostrarSweetError('Error de validación', 'Por favor completa todos los campos requeridos (*)');
+        return;
+    }
 
     const formData = new FormData(event.target);
     
@@ -2947,6 +3165,12 @@ function inicializarEventListeners() {
     const btnPdfAll = document.getElementById('btnPdfAll');
     if (btnPdfAll) {
         btnPdfAll.addEventListener('click', generarReportePDF);
+    }
+
+    // Botón de impresión
+    const btnPrintAll = document.getElementById('btnPrintAll');
+    if (btnPrintAll) {
+        btnPrintAll.addEventListener('click', manejarImpresion);
     }
 
     // Cálculo en tiempo real
@@ -3074,62 +3298,13 @@ function inicializarEventListeners() {
  * Formatear moneda
  */
 function formatearMoneda(valor) {
-    return parseFloat(valor).toLocaleString('es-DO', {
+    const num = parseFloat(valor);
+    if (isNaN(num)) return '0.00';
+    
+    return num.toLocaleString('es-DO', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
-}
-
-/**
- * Mostrar mensaje de éxito
- */
-function mostrarExito(mensaje) {
-    toastr.success(mensaje, 'Éxito', {
-        timeOut: 4000,
-        closeButton: true
-    });
-}
-
-/**
- * Mostrar mensaje de error
- */
-function mostrarError(mensaje) {
-    toastr.error(mensaje, 'Error', {
-        timeOut: 6000,
-        closeButton: true
-    });
-}
-
-/**
- * Mostrar mensaje de advertencia
- */
-function mostrarAdvertencia(mensaje) {
-    toastr.warning(mensaje, 'Advertencia', {
-        timeOut: 5000,
-        closeButton: true
-    });
-}
-
-/**
- * Mostrar mensaje informativo
- */
-function mostrarInfo(mensaje) {
-    toastr.info(mensaje, 'Información', {
-        timeOut: 4000,
-        closeButton: true
-    });
-}
-
-/**
- * Mostrar/ocultar loading
- */
-function mostrarLoading(mostrar) {
-    if (mostrar) {
-        // Puedes agregar un spinner aquí si lo deseas
-        document.body.style.cursor = 'wait';
-    } else {
-        document.body.style.cursor = 'default';
-    }
 }
 
 // =============================================================================
@@ -3142,14 +3317,20 @@ function mostrarLoading(mostrar) {
 function inicializarAplicacion() {
     console.log('Inicializando módulo Convertidor...');
     
-    // Inicializar event listeners
-    inicializarEventListeners();
-    
-    // Cargar datos iniciales
-    cargarMovimientos();
-    cargarEstadisticas();
-    
-    console.log('Módulo Convertidor inicializado correctamente');
+    try {
+        // Inicializar event listeners
+        inicializarEventListeners();
+        
+        // Cargar datos iniciales
+        cargarMovimientos();
+        cargarEstadisticas();
+        
+        console.log('Módulo Convertidor inicializado correctamente');
+        mostrarInfo('Módulo de conversiones cargado', 'Sistema listo');
+    } catch (error) {
+        console.error('Error inicializando aplicación:', error);
+        mostrarSweetError('Error crítico', 'No se pudo inicializar el módulo de conversiones');
+    }
 }
 
 // Inicializar cuando el DOM esté listo
@@ -3167,6 +3348,7 @@ window.calcularConversion = calcularConversion;
 window.mostrarImagen = mostrarImagen;
 window.mostrarDescripcionCompleta = mostrarDescripcionCompleta;
 window.cerrarModalVerMas = cerrarModalVerMas;
+window.manejarImpresion = manejarImpresion;
     </script>
 </body>
 </html>

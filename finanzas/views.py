@@ -15,6 +15,16 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.platypus import Table, TableStyle
+from reportlab.lib.pagesizes import letter, A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch, cm
+from reportlab.platypus.flowables import HRFlowable, KeepTogether
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO
 
 # ----------------------------------------------------------------------
 # 3. IMPORTS DE DJANGO
@@ -420,12 +430,781 @@ def convertidor_eliminar(request, id):
 # =============================================================================
 # REPORTE PDF - HISTORIAL COMPLETO  DEL  CONVERTIDOR
 # =============================================================================
-
 def convertidor_reporte_pdf(request):
     """
-    Genera reporte PDF del historial de movimientos (filtrado o completo)
+    Genera reporte PDF profesional del historial completo de movimientos
     """
-    # Aplicar mismos filtros que en historial
+    # Aplicar filtros
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    descripcion = request.GET.get('descripcion')
+    monto_min = request.GET.get('monto_min')
+
+    movimientos = MovimientoEntrada.objects.all()
+
+    if fecha_inicio:
+        movimientos = movimientos.filter(fecha__date__gte=fecha_inicio)
+    if fecha_fin:
+        movimientos = movimientos.filter(fecha__date__lte=fecha_fin)
+    if descripcion:
+        movimientos = movimientos.filter(descripcion__icontains=descripcion)
+    if monto_min:
+        movimientos = movimientos.filter(monto_usd__gte=monto_min)
+    
+    movimientos = movimientos.order_by('-fecha')
+    
+    # Calcular totales
+    total_movimientos = movimientos.count()
+    total_usd = movimientos.aggregate(total=Sum('monto_usd'))['total'] or 0
+    total_pesos = movimientos.aggregate(total=Sum('monto_pesos'))['total'] or 0
+    
+    # Formatear fechas para mostrar
+    fecha_inicio_str = fecha_inicio if fecha_inicio else "No especificada"
+    fecha_fin_str = fecha_fin if fecha_fin else "No especificada"
+    
+    # Si hay fechas, convertirlas al formato correcto (de YYYY-MM-DD a DD/MM/YYYY)
+    if fecha_inicio:
+        try:
+            fecha_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+            fecha_inicio_str = fecha_obj.strftime('%d/%m/%Y')
+        except:
+            pass
+    
+    if fecha_fin:
+        try:
+            fecha_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_str = fecha_obj.strftime('%d/%m/%Y')
+        except:
+            pass
+    
+    # Crear buffer para el PDF
+    buffer = BytesIO()
+    
+    # Crear documento en modo portrait (A4 vertical)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=2*cm,
+        bottomMargin=1.5*cm,
+        title="Reporte de Conversiones de Divisas"
+    )
+    
+    # Estilos personalizados
+    styles = getSampleStyleSheet()
+    
+    # Título principal - Estilo similar al reporte de la imagen
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=16,
+        textColor=colors.black,
+        spaceAfter=12,
+        alignment=1,  # Centrado
+        fontName='Helvetica-Bold',
+        leading=18
+    )
+    
+    # Estilo para encabezados de sección
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.black,
+        spaceAfter=8,
+        fontName='Helvetica-Bold',
+        alignment=0,  # Izquierda
+        leading=14,
+        leftIndent=0
+    )
+    
+    # Estilo para información normal
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=4,
+        alignment=0,
+        leading=12
+    )
+    
+    # Estilo para tabla
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.black,
+        fontName='Helvetica-Bold',
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_style = ParagraphStyle(
+        'TableCell',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_left_style = ParagraphStyle(
+        'TableCellLeft',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=0,  # Izquierda
+        leading=10
+    )
+    
+    # Elementos del documento
+    elements = []
+    
+    # Crear una tabla de encabezado con logo a la izquierda y título a la derecha
+    header_table_data = []
+    
+    # Asegurarse de importar Image al inicio del archivo: from reportlab.platypus import Image
+    try:
+        # Intentar cargar el logo de la empresa
+        # Cambia esta ruta por la ubicación real de tu logo
+        logo_path = "static/img/logo.ico"  # Ajusta esta ruta según tu proyecto
+        
+        # Crear la imagen del logo
+        logo = Image(logo_path, width=5*cm, height=3*cm)
+        logo.hAlign = 'LEFT'
+        
+        # Crear celda con el logo
+        logo_cell = logo
+        
+    except Exception as e:
+        # Si no se puede cargar el logo, usar texto alternativo
+        logo_cell = Paragraph("LOGO EMPRESA", ParagraphStyle(
+            'LogoPlaceholder',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.gray,
+            alignment=1,
+            fontName='Helvetica-Bold'
+        ))
+    
+    # Crear celda con los títulos
+    titles_cell = [
+        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Spacer(1, 4),
+        Paragraph("REPORTE HISTÓRICO DE CONVERSIONES", 
+                  ParagraphStyle(
+                      'SubtitleStyle',
+                      parent=styles['Title'],
+                      fontSize=14,
+                      textColor=colors.black,
+                      spaceAfter=0,
+                      alignment=1,
+                      fontName='Helvetica-Bold',
+                      leading=16
+                  ))
+    ]
+    
+    # Crear la fila de la tabla: logo a la izquierda, títulos a la derecha
+    header_table_data.append([logo_cell, titles_cell])
+    
+    # Crear la tabla de encabezado
+    header_table = Table(header_table_data, colWidths=[4*cm, 11*cm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    
+    elements.append(header_table)
+    elements.append(Spacer(1, 12))
+    
+    # Fecha del reporte - Similar al formato de la imagen
+    fecha_table_data = [
+        ["Fecha del Reporte:", datetime.now().strftime('%d/%m/%Y %I:%M')]
+    ]
+    
+    fecha_table = Table(fecha_table_data, colWidths=[4*cm, 11*cm])
+    fecha_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+    ]))
+    
+    elements.append(fecha_table)
+    elements.append(Spacer(1, 16))
+    
+    # DATOS DEL REPORTE (similar a "Datos del Cliente" en la imagen)
+    elements.append(Paragraph("DATOS DEL REPORTE", section_style))
+    elements.append(Spacer(1, 6))
+    
+    # Construir datos del reporte dinámicamente
+    datos_reporte = []
+    datos_reporte.append(["Usuario Encargado:", request.user.get_full_name() or request.user.username])
+    datos_reporte.append(["Total de registros:", str(total_movimientos)])
+    
+    # Solo agregar filtros si se aplicaron
+    if fecha_inicio or fecha_fin:
+        datos_reporte.append(["Período del reporte:", f"Del {fecha_inicio_str} al {fecha_fin_str}"])
+    
+    if descripcion:
+        datos_reporte.append(["Descripción filtrada:", descripcion])
+    
+    if monto_min:
+        datos_reporte.append(["Monto mínimo (USD):", f"${monto_min}"])
+    
+    # Agregar información de totales
+    datos_reporte.append(["Total USD:", f"$ {total_usd:,.2f}"])
+    datos_reporte.append(["Total Pesos:", f"$ {total_pesos:,.2f}"])
+    
+    datos_table = Table(datos_reporte, colWidths=[5*cm, 10*cm])
+    datos_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+    ]))
+    
+    elements.append(datos_table)
+    elements.append(Spacer(1, 16))
+    
+    # RESÚMENES TOTALES (similar a la tabla de componentes en la imagen)
+    if movimientos.exists():
+        elements.append(Paragraph("DETALLE DE CONVERSIONES", section_style))
+        elements.append(Spacer(1, 6))
+        
+        # Preparar datos de la tabla
+        table_data = []
+        
+        # Encabezados - similar al reporte de la imagen
+        headers = [
+            Paragraph("Nº", table_header_style),
+            Paragraph("FECHA", table_header_style),
+            Paragraph("DESCRIPCIÓN", table_header_style),
+            Paragraph("USD", table_header_style),
+            Paragraph("TASA", table_header_style),
+            Paragraph("PESOS", table_header_style),
+            Paragraph("ESTADO", table_header_style)
+        ]
+        table_data.append(headers)
+        
+        # Agregar filas de datos
+        for idx, mov in enumerate(movimientos, 1):
+            # Formatear fecha usando el método del modelo
+            fecha_formateada = mov.fecha_formateada if hasattr(mov, 'fecha_formateada') else mov.fecha.strftime('%d/%m/%Y')
+            
+            descripcion_text = mov.descripcion or 'Sin descripción'
+            if len(descripcion_text) > 25:
+                descripcion_text = descripcion_text[:22] + "..."
+            
+            row = [
+                Paragraph(str(idx), table_cell_style),
+                Paragraph(fecha_formateada, table_cell_style),
+                Paragraph(descripcion_text, table_cell_left_style),
+                Paragraph(f"$ {mov.monto_usd:,.2f}", table_cell_style),
+                Paragraph(f"$ {mov.tasa_cambio:,.2f}", table_cell_style),
+                Paragraph(f"$ {mov.monto_pesos:,.2f}", table_cell_style),
+                Paragraph("Completado", table_cell_style)
+            ]
+            table_data.append(row)
+        
+        # Anchos de columna
+        col_widths = [1.2*cm, 2.5*cm, 4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm]
+        table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        
+        # Estilos de la tabla - similar al reporte de la imagen
+        table_style = TableStyle([
+            # Encabezado
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            
+            # Bordes - similares al reporte de la imagen
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            
+            # Alineación
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+            ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+            ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+            ('ALIGN', (3, 1), (5, -1), 'RIGHT'),
+            ('ALIGN', (6, 1), (6, -1), 'CENTER'),
+            
+            # Padding
+            ('PADDING', (0, 0), (-1, -1), (4, 4)),
+            
+            # Filas alternas
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ])
+        
+        # Alternar colores de fila
+        for i in range(1, len(table_data)):
+            if i % 2 == 0:
+                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8f8f8'))
+        
+        table.setStyle(table_style)
+        elements.append(table)
+    else:
+        # Mensaje cuando no hay datos
+        no_data_style = ParagraphStyle(
+            'NoData',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.black,
+            spaceAfter=15,
+            alignment=1,
+            fontName='Helvetica-Bold',
+            leading=14
+        )
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("NO SE ENCONTRARON MOVIMIENTOS", no_data_style))
+        elements.append(Spacer(1, 15))
+    
+    elements.append(Spacer(1, 20))
+    
+    # OBSERVACIONES (similar a la sección de observaciones en la imagen)
+    elements.append(Paragraph("OBSERVACIONES", section_style))
+    elements.append(Spacer(1, 6))
+    
+    # Crear observaciones dinámicas
+    observaciones_text = "Reporte generado automáticamente por el sistema. "
+    if total_movimientos > 0:
+        observaciones_text += f"Se encontraron {total_movimientos} conversiones. "
+        observaciones_text += f"Total convertido: ${total_usd:,.2f} USD → ${total_pesos:,.2f} DOP. "
+    
+    if fecha_inicio or fecha_fin:
+        observaciones_text += f"Período del reporte: {fecha_inicio_str} al {fecha_fin_str}. "
+    
+    observaciones_style = ParagraphStyle(
+        'Observaciones',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=8,
+        alignment=0,
+        leading=12,
+        leftIndent=0,
+        borderWidth=1,
+        borderColor=colors.black,
+        padding=6
+    )
+    
+    elements.append(Paragraph(observaciones_text, observaciones_style))
+    elements.append(Spacer(1, 20))
+    
+    # Información del sistema (pie de página)
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=0,
+        alignment=1,
+        leading=10
+    )
+    
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    
+    # Construir el PDF
+    doc.build(elements)
+    
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Crear respuesta HTTP
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_conversiones_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response.write(pdf)
+    
+    return response
+
+# =============================================================================
+# REPORTE PDF - DETALLE DE MOVIMIENTO (CORREGIDO)  DEL  CONVERTIDOR
+# =============================================================================
+def convertidor_reporte_detalle_pdf(request, id):
+    """
+    Genera reporte PDF profesional de un movimiento específico
+    """
+    movimiento = get_object_or_404(MovimientoEntrada, id=id)
+    
+    # Crear buffer para el PDF
+    buffer = BytesIO()
+    
+    # Crear documento en modo portrait (A4 vertical)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=1.2*cm,  # Reducido para que el logo esté más arriba
+        bottomMargin=1.5*cm,
+        title=f"Reporte Movimiento {id}"
+    )
+    
+    # Estilos personalizados - MISMOS QUE EL REPORTE HISTÓRICO
+    styles = getSampleStyleSheet()
+    
+    # Título principal - Estilo similar al reporte de la imagen
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=16,
+        textColor=colors.black,
+        spaceAfter=12,
+        alignment=1,  # Centrado
+        fontName='Helvetica-Bold',
+        leading=18
+    )
+    
+    # Estilo para encabezados de sección
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.black,
+        spaceAfter=8,
+        fontName='Helvetica-Bold',
+        alignment=0,  # Izquierda
+        leading=14,
+        leftIndent=0
+    )
+    
+    # Estilo para información normal
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=4,
+        alignment=0,
+        leading=12
+    )
+    
+    # Estilo para tabla
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.black,
+        fontName='Helvetica-Bold',
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_style = ParagraphStyle(
+        'TableCell',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_left_style = ParagraphStyle(
+        'TableCellLeft',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=0,  # Izquierda
+        leading=10
+    )
+    
+    # Elementos del documento
+    elements = []
+    
+    # Crear una tabla de encabezado con logo a la izquierda y título a la derecha
+    header_table_data = []
+    
+    # Intentar cargar el logo de la empresa - MISMA RUTA QUE EL REPORTE HISTÓRICO
+    try:
+        logo_path = "static/img/logo.ico"  # MISMA RUTA QUE EL REPORTE HISTÓRICO
+        
+        # Crear la imagen del logo - TAMAÑO AJUSTADO
+        logo = Image(logo_path, width=3.5*cm, height=2.5*cm)
+        logo.hAlign = 'LEFT'
+        
+        # Crear celda con el logo
+        logo_cell = logo
+        
+    except Exception as e:
+        # Si no se puede cargar el logo, usar texto alternativo
+        logo_cell = Paragraph("LOGO EMPRESA", ParagraphStyle(
+            'LogoPlaceholder',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.gray,
+            alignment=1,
+            fontName='Helvetica-Bold'
+        ))
+    
+    # Crear celda con los títulos - MISMO FORMATO QUE EL REPORTE HISTÓRICO
+    titles_cell = [
+        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Spacer(1, 4),
+        Paragraph(f"REPORTE DETALLADO - MOVIMIENTO #{id}", 
+                  ParagraphStyle(
+                      'SubtitleStyle',
+                      parent=styles['Title'],
+                      fontSize=14,
+                      textColor=colors.black,
+                      spaceAfter=0,
+                      alignment=1,
+                      fontName='Helvetica-Bold',
+                      leading=16
+                  ))
+    ]
+    
+    # Crear la fila de la tabla: logo a la izquierda, títulos a la derecha
+    header_table_data.append([logo_cell, titles_cell])
+    
+    # Crear la tabla de encabezado - AJUSTADO PARA LOGO MÁS ARRIBA
+    header_table = Table(header_table_data, colWidths=[4*cm, 11*cm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+        ('TOPPADDING', (0, 0), (0, 0), -10),  # NEGATIVO PARA SUBIR EL LOGO MÁS
+        ('TOPPADDING', (1, 0), (1, 0), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+    
+    # Fecha del reporte - MISMO FORMATO QUE EL REPORTE HISTÓRICO
+    fecha_table_data = [
+        ["Fecha del Reporte:", datetime.now().strftime('%d/%m/%Y %I:%M')]
+    ]
+    
+    fecha_table = Table(fecha_table_data, colWidths=[4*cm, 11*cm])
+    fecha_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+    ]))
+    
+    elements.append(fecha_table)
+    elements.append(Spacer(1, 12))
+    
+    # DATOS DEL MOVIMIENTO (similar a "Datos del Reporte" en el histórico)
+    elements.append(Paragraph("DATOS DEL MOVIMIENTO", section_style))
+    elements.append(Spacer(1, 6))
+    
+    # Construir datos del movimiento dinámicamente
+    datos_movimiento = []
+    datos_movimiento.append(["ID del Movimiento:", f"#{id}"])
+    datos_movimiento.append(["Fecha de Conversión:", movimiento.fecha.strftime('%d/%m/%Y %I:%M')])
+    datos_movimiento.append(["Usuario Encargado:", request.user.get_full_name() or request.user.username])
+    datos_movimiento.append(["Estado:", "Completado"])
+    
+    # Agregar descripción si existe
+    if movimiento.descripcion:
+        descripcion_text = movimiento.descripcion
+        if len(descripcion_text) > 40:
+            descripcion_text = descripcion_text[:37] + "..."
+        datos_movimiento.append(["Descripción:", descripcion_text])
+    
+    datos_table = Table(datos_movimiento, colWidths=[5*cm, 10*cm])
+    datos_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+    ]))
+    
+    elements.append(datos_table)
+    elements.append(Spacer(1, 16))
+    
+    # RESUMEN DE CONVERSIÓN (similar a "Resúmenes Totales" en el histórico)
+    elements.append(Paragraph("RESUMEN DE CONVERSIÓN", section_style))
+    elements.append(Spacer(1, 6))
+    
+    resumen_data = [
+        ["Descripción", "Monto", "Estado"],
+        ["Monto en USD", f"$ {movimiento.monto_usd:,.2f}", "Verificado"],
+        ["Tasa de Cambio", f"$ {movimiento.tasa_cambio:,.2f}", "Aplicada"],
+        ["Monto en Pesos", f"$ {movimiento.monto_pesos:,.2f}", "Calculado"],
+    ]
+    
+    resumen_table = Table(resumen_data, colWidths=[8*cm, 4*cm, 3*cm])
+    resumen_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+    ]))
+    
+    elements.append(resumen_table)
+    elements.append(Spacer(1, 16))
+    
+    # DETALLE DE CONVERSIÓN (similar a "Detalle de Conversiones" en el histórico)
+    elements.append(Paragraph("DETALLE DE CONVERSIÓN", section_style))
+    elements.append(Spacer(1, 6))
+    
+    # Preparar datos de la tabla - MISMA ESTRUCTURA QUE EL HISTÓRICO
+    table_data = []
+    
+    # Encabezados - igual al reporte histórico
+    headers = [
+        Paragraph("Nº", table_header_style),
+        Paragraph("FECHA", table_header_style),
+        Paragraph("DESCRIPCIÓN", table_header_style),
+        Paragraph("USD", table_header_style),
+        Paragraph("TASA", table_header_style),
+        Paragraph("PESOS", table_header_style),
+        Paragraph("ESTADO", table_header_style)
+    ]
+    table_data.append(headers)
+    
+    # Agregar fila del movimiento
+    fecha_formateada = movimiento.fecha_formateada if hasattr(movimiento, 'fecha_formateada') else movimiento.fecha.strftime('%d/%m/%Y')
+    
+    descripcion_text = movimiento.descripcion or 'Sin descripción'
+    if len(descripcion_text) > 25:
+        descripcion_text = descripcion_text[:22] + "..."
+    
+    row = [
+        Paragraph("1", table_cell_style),
+        Paragraph(fecha_formateada, table_cell_style),
+        Paragraph(descripcion_text, table_cell_left_style),
+        Paragraph(f"$ {movimiento.monto_usd:,.2f}", table_cell_style),
+        Paragraph(f"$ {movimiento.tasa_cambio:,.2f}", table_cell_style),
+        Paragraph(f"$ {movimiento.monto_pesos:,.2f}", table_cell_style),
+        Paragraph("Completado", table_cell_style)
+    ]
+    table_data.append(row)
+    
+    # Anchos de columna - igual al reporte histórico
+    col_widths = [1.2*cm, 2.5*cm, 4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm]
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    
+    # Estilos de la tabla - igual al reporte histórico
+    table_style = TableStyle([
+        # Encabezado
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        
+        # Bordes
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
+        
+        # Alineación
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+        ('ALIGN', (3, 1), (5, -1), 'RIGHT'),
+        ('ALIGN', (6, 1), (6, -1), 'CENTER'),
+        
+        # Padding
+        ('PADDING', (0, 0), (-1, -1), (4, 4)),
+        
+        # Fila de datos
+        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f8f8f8')),
+    ])
+    
+    table.setStyle(table_style)
+    elements.append(table)
+    elements.append(Spacer(1, 20))
+    
+    # OBSERVACIONES (igual al reporte histórico)
+    elements.append(Paragraph("OBSERVACIONES", section_style))
+    elements.append(Spacer(1, 6))
+    
+    # Crear observaciones dinámicas
+    observaciones_text = "Reporte detallado de movimiento individual. "
+    observaciones_text += f"Conversión realizada el {movimiento.fecha.strftime('%d/%m/%Y')}. "
+    observaciones_text += f"Monto convertido: ${movimiento.monto_usd:,.2f} USD → ${movimiento.monto_pesos:,.2f} DOP."
+    
+    if movimiento.descripcion:
+        observaciones_text += f" Notas: {movimiento.descripcion}"
+    
+    observaciones_style = ParagraphStyle(
+        'Observaciones',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=8,
+        alignment=0,
+        leading=12,
+        leftIndent=0,
+        borderWidth=1,
+        borderColor=colors.black,
+        padding=6
+    )
+    
+    elements.append(Paragraph(observaciones_text, observaciones_style))
+    elements.append(Spacer(1, 20))
+    
+    # Información del sistema (pie de página) - igual al reporte histórico
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=0,
+        alignment=1,
+        leading=10
+    )
+    
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    
+    # Construir el PDF
+    doc.build(elements)
+    
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Crear respuesta HTTP
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="movimiento_{id}_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response.write(pdf)
+    
+    return response
+# =============================================================================
+# FUNCIÓN PARA IMPRIMIR (VERSIÓN PARA IMPRESORA)
+# =============================================================================
+def convertidor_imprimir_todo(request):
+    """
+    Genera versión optimizada para impresión del historial completo
+    """
+    # Aplicar filtros
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     descripcion = request.GET.get('descripcion')
@@ -444,210 +1223,394 @@ def convertidor_reporte_pdf(request):
     
     movimientos = movimientos.order_by('-fecha')
     
-    # Crear respuesta HTTP con PDF
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reporte_convertidor.pdf"'
+    # Calcular totales
+    total_movimientos = movimientos.count()
+    total_usd = movimientos.aggregate(total=Sum('monto_usd'))['total'] or 0
+    total_pesos = movimientos.aggregate(total=Sum('monto_pesos'))['total'] or 0
     
-    # Crear PDF
-    p = canvas.Canvas(response, pagesize=letter)
-    width, height = letter
+    # Formatear fechas para mostrar
+    fecha_inicio_str = fecha_inicio if fecha_inicio else "No especificada"
+    fecha_fin_str = fecha_fin if fecha_fin else "No especificada"
     
-    # Título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(1 * inch, height - 1 * inch, "Reporte de Movimientos - Convertidor")
+    # Si hay fechas, convertirlas al formato correcto (de YYYY-MM-DD a DD/MM/YYYY)
+    if fecha_inicio:
+        try:
+            fecha_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+            fecha_inicio_str = fecha_obj.strftime('%d/%m/%Y')
+        except:
+            pass
     
-    # Fecha de generación
-    p.setFont("Helvetica", 10)
-    p.drawString(1 * inch, height - 1.2 * inch, f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    if fecha_fin:
+        try:
+            fecha_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_str = fecha_obj.strftime('%d/%m/%Y')
+        except:
+            pass
     
-    # Información de filtros aplicados
-    y_pos = height - 1.5 * inch
-    if fecha_inicio or fecha_fin or descripcion or monto_min:
-        p.drawString(1 * inch, y_pos, "Filtros aplicados:")
-        y_pos -= 0.15 * inch
+    # Crear buffer para el PDF
+    buffer = BytesIO()
+    
+    # Crear documento en modo portrait (A4 vertical)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=1.2*cm,  # Reducido para que el logo esté más arriba
+        bottomMargin=1.5*cm,
+        title="Impresión de Conversiones de Divisas"
+    )
+    
+    # Estilos personalizados
+    styles = getSampleStyleSheet()
+    
+    # Título principal - Estilo similar al reporte de la imagen
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Title'],
+        fontSize=16,
+        textColor=colors.black,
+        spaceAfter=12,
+        alignment=1,  # Centrado
+        fontName='Helvetica-Bold',
+        leading=18
+    )
+    
+    # Estilo para encabezados de sección
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.black,
+        spaceAfter=8,
+        fontName='Helvetica-Bold',
+        alignment=0,  # Izquierda
+        leading=14,
+        leftIndent=0
+    )
+    
+    # Estilo para información normal
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=4,
+        alignment=0,
+        leading=12
+    )
+    
+    # Estilo para tabla
+    table_header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.black,
+        fontName='Helvetica-Bold',
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_style = ParagraphStyle(
+        'TableCell',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=1,  # Centrado
+        leading=10
+    )
+    
+    table_cell_left_style = ParagraphStyle(
+        'TableCellLeft',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=0,  # Izquierda
+        leading=10
+    )
+    
+    # Elementos del documento
+    elements = []
+    
+    # Crear una tabla de encabezado con logo a la izquierda y título a la derecha
+    header_table_data = []
+    
+    # Intentar cargar el logo de la empresa - logo más arriba y a la izquierda
+    try:
+        # Ruta del logo - ajusta según tu proyecto
+        # Intenta varias rutas posibles
+        logo_paths = ["static/img/logo.png"]
         
-        if fecha_inicio:
-            p.drawString(1.2 * inch, y_pos, f"Desde: {fecha_inicio}")
-            y_pos -= 0.15 * inch
-        if fecha_fin:
-            p.drawString(1.2 * inch, y_pos, f"Hasta: {fecha_fin}")
-            y_pos -= 0.15 * inch
-        if descripcion:
-            p.drawString(1.2 * inch, y_pos, f"Descripción: {descripcion}")
-            y_pos -= 0.15 * inch
-        if monto_min:
-            p.drawString(1.2 * inch, y_pos, f"Monto mínimo: ${monto_min} USD")
-            y_pos -= 0.15 * inch
+        logo = None
+        for path in logo_paths:
+            try:
+                logo = Image(path, width=2.8*cm, height=2.8*cm)  # Tamaño ligeramente reducido
+                break
+            except:
+                continue
+        
+        if logo:
+            logo_cell = logo
+        else:
+            raise Exception("Logo no encontrado")
+            
+    except Exception as e:
+        # Si no se puede cargar el logo, usar texto alternativo
+        logo_cell = Paragraph("LOGO EMPRESA", ParagraphStyle(
+            'LogoPlaceholder',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.gray,
+            alignment=1,
+            fontName='Helvetica-Bold'
+        ))
     
-    # Preparar datos para la tabla
-    data = [['Fecha', 'Monto USD', 'Tasa', 'Monto DOP', 'Descripción']]
+    # Crear celda con los títulos
+    titles_cell = [
+        Paragraph("SISTEMA DE CONVERSIÓN DE DIVISAS", title_style),
+        Spacer(1, 4),
+        Paragraph("REPORTE PARA IMPRESIÓN", 
+                  ParagraphStyle(
+                      'SubtitleStyle',
+                      parent=styles['Title'],
+                      fontSize=14,
+                      textColor=colors.black,
+                      spaceAfter=0,
+                      alignment=1,
+                      fontName='Helvetica-Bold',
+                      leading=16
+                  ))
+    ]
     
-    for mov in movimientos:
-        data.append([
-            mov.fecha.strftime('%d/%m/%Y'),
-            f"${mov.monto_usd:,.2f}",
-            f"${mov.tasa_cambio:,.2f}",
-            f"${mov.monto_pesos:,.2f}",
-            mov.descripcion or ''
-        ])
+    # Crear la fila de la tabla: logo a la izquierda, títulos a la derecha
+    header_table_data.append([logo_cell, titles_cell])
     
-    # Crear tabla
-    table = Table(data, colWidths=[1.2 * inch, 1.2 * inch, 1 * inch, 1.2 * inch, 2.4 * inch])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    # Crear la tabla de encabezado - ajustada para que el logo esté más arriba
+    header_table = Table(header_table_data, colWidths=[3.5*cm, 11.5*cm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+        ('TOPPADDING', (0, 0), (0, 0), -5),  # Negativo para subir el logo
+        ('TOPPADDING', (1, 0), (1, 0), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
     
-    # Dibujar tabla
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 1 * inch, y_pos - (len(data) * 0.25 * inch))
+    elements.append(header_table)
+    elements.append(Spacer(1, 8))  # Menos espacio después del encabezado
     
-    # Totales
-    total_usd = movimientos.aggregate(total=Sum('monto_usd'))['total'] or 0
-    total_rd = movimientos.aggregate(total=Sum('monto_pesos'))['total'] or 0
+    # Fecha del reporte
+    fecha_table_data = [
+        ["Fecha del Reporte:", datetime.now().strftime('%d/%m/%Y %I:%M')]
+    ]
     
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, 1 * inch, f"Total Movimientos: {movimientos.count()}")
-    p.drawString(1 * inch, 0.8 * inch, f"Total USD: ${total_usd:,.2f}")
-    p.drawString(1 * inch, 0.6 * inch, f"Total DOP: ${total_rd:,.2f}")
+    fecha_table = Table(fecha_table_data, colWidths=[4*cm, 11*cm])
+    fecha_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),  # Reducido
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),  # Reducido
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+    ]))
     
-    p.showPage()
-    p.save()
+    elements.append(fecha_table)
+    elements.append(Spacer(1, 12))  # Menos espacio
     
-    return response
-
-# =============================================================================
-# REPORTE PDF - DETALLE DE MOVIMIENTO (CORREGIDO)  DEL  CONVERTIDOR
-# =============================================================================
-
-def convertidor_reporte_detalle_pdf(request, id):
-    """
-    Genera reporte PDF de un movimiento específico
-    """
-    movimiento = get_object_or_404(MovimientoEntrada, id=id)
+    # DATOS DEL REPORTE
+    elements.append(Paragraph("DATOS DEL REPORTE", section_style))
+    elements.append(Spacer(1, 4))  # Menos espacio
     
-    # Crear respuesta HTTP con PDF
+    # Construir datos del reporte dinámicamente
+    datos_reporte = []
+    datos_reporte.append(["Usuario Encargado:", request.user.get_full_name() or request.user.username])
+    datos_reporte.append(["Total de registros:", str(total_movimientos)])
+    
+    # Solo agregar filtros si se aplicaron
+    if fecha_inicio or fecha_fin:
+        datos_reporte.append(["Período del reporte:", f"Del {fecha_inicio_str} al {fecha_fin_str}"])
+    
+    if descripcion:
+        datos_reporte.append(["Descripción filtrada:", descripcion])
+    
+    if monto_min:
+        datos_reporte.append(["Monto mínimo (USD):", f"${monto_min}"])
+    
+    # Agregar información de totales
+    datos_reporte.append(["Total USD:", f"$ {total_usd:,.2f}"])
+    datos_reporte.append(["Total Pesos:", f"$ {total_pesos:,.2f}"])
+    
+    datos_table = Table(datos_reporte, colWidths=[5*cm, 10*cm])
+    datos_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('PADDING', (0, 0), (-1, -1), (4, 6)),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+    ]))
+    
+    elements.append(datos_table)
+    elements.append(Spacer(1, 12))  # Menos espacio
+    
+    # DETALLE DE CONVERSIONES
+    if movimientos.exists():
+        elements.append(Paragraph("DETALLE DE CONVERSIONES", section_style))
+        elements.append(Spacer(1, 4))  # Menos espacio
+        
+        # Preparar datos de la tabla
+        table_data = []
+        
+        # Encabezados - similar al reporte de la imagen
+        headers = [
+            Paragraph("Nº", table_header_style),
+            Paragraph("FECHA", table_header_style),
+            Paragraph("DESCRIPCIÓN", table_header_style),
+            Paragraph("USD", table_header_style),
+            Paragraph("TASA", table_header_style),
+            Paragraph("PESOS", table_header_style),
+            Paragraph("ESTADO", table_header_style)
+        ]
+        table_data.append(headers)
+        
+        # Agregar filas de datos
+        for idx, mov in enumerate(movimientos, 1):
+            # Formatear fecha usando el método del modelo
+            fecha_formateada = mov.fecha_formateada if hasattr(mov, 'fecha_formateada') else mov.fecha.strftime('%d/%m/%Y')
+            
+            descripcion_text = mov.descripcion or 'Sin descripción'
+            if len(descripcion_text) > 25:
+                descripcion_text = descripcion_text[:22] + "..."
+            
+            row = [
+                Paragraph(str(idx), table_cell_style),
+                Paragraph(fecha_formateada, table_cell_style),
+                Paragraph(descripcion_text, table_cell_left_style),
+                Paragraph(f"$ {mov.monto_usd:,.2f}", table_cell_style),
+                Paragraph(f"$ {mov.tasa_cambio:,.2f}", table_cell_style),
+                Paragraph(f"$ {mov.monto_pesos:,.2f}", table_cell_style),
+                Paragraph("Completado", table_cell_style)
+            ]
+            table_data.append(row)
+        
+        # Anchos de columna
+        col_widths = [1.2*cm, 2.5*cm, 4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm]
+        table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        
+        # Estilos de la tabla - similar al reporte de la imagen
+        table_style = TableStyle([
+            # Encabezado
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            
+            # Bordes - similares al reporte de la imagen
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            
+            # Alineación
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+            ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+            ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+            ('ALIGN', (3, 1), (5, -1), 'RIGHT'),
+            ('ALIGN', (6, 1), (6, -1), 'CENTER'),
+            
+            # Padding
+            ('PADDING', (0, 0), (-1, -1), (4, 4)),
+            
+            # Filas alternas
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ])
+        
+        # Alternar colores de fila
+        for i in range(1, len(table_data)):
+            if i % 2 == 0:
+                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8f8f8'))
+        
+        table.setStyle(table_style)
+        elements.append(table)
+    else:
+        # Mensaje cuando no hay datos
+        no_data_style = ParagraphStyle(
+            'NoData',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.black,
+            spaceAfter=15,
+            alignment=1,
+            fontName='Helvetica-Bold',
+            leading=14
+        )
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("NO SE ENCONTRARON MOVIMIENTOS", no_data_style))
+        elements.append(Spacer(1, 15))
+    
+    elements.append(Spacer(1, 15))  # Menos espacio
+    
+    # OBSERVACIONES
+    elements.append(Paragraph("OBSERVACIONES", section_style))
+    elements.append(Spacer(1, 4))  # Menos espacio
+    
+    # Crear observaciones dinámicas
+    observaciones_text = "Reporte generado automáticamente por el sistema. "
+    if total_movimientos > 0:
+        observaciones_text += f"Se encontraron {total_movimientos} conversiones. "
+        observaciones_text += f"Total convertido: ${total_usd:,.2f} USD → ${total_pesos:,.2f} DOP. "
+    
+    if fecha_inicio or fecha_fin:
+        observaciones_text += f"Período del reporte: {fecha_inicio_str} al {fecha_fin_str}. "
+    
+    observaciones_style = ParagraphStyle(
+        'Observaciones',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        spaceAfter=8,
+        alignment=0,
+        leading=12,
+        leftIndent=0,
+        borderWidth=1,
+        borderColor=colors.black,
+        padding=6
+    )
+    
+    elements.append(Paragraph(observaciones_text, observaciones_style))
+    elements.append(Spacer(1, 15))  # Menos espacio
+    
+    # Información del sistema (pie de página)
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#666666'),
+        spaceAfter=0,
+        alignment=1,
+        leading=10
+    )
+    
+    elements.append(Spacer(1, 8))  # Menos espacio
+    elements.append(Paragraph(f"Sistema de Conversión de Divisas - Generado el {datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
+    elements.append(Paragraph("Reporte válido como documentación del sistema", footer_style))
+    
+    # Construir el PDF
+    doc.build(elements)
+    
+    # Obtener el valor del buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Crear respuesta HTTP
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="movimiento_{id}.pdf"'
-    
-    # Crear PDF
-    p = canvas.Canvas(response, pagesize=letter)
-    width, height = letter
-    
-    # Título
-    p.setFont("Helvetica-Bold", 18)
-    p.drawCentredString(width / 2, height - 1 * inch, "Detalle de Movimiento")
-    
-    # Línea separadora
-    p.line(1 * inch, height - 1.2 * inch, width - 1 * inch, height - 1.2 * inch)
-    
-    # Información del movimiento
-    y_pos = height - 1.8 * inch
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, y_pos, "ID Movimiento:")
-    p.setFont("Helvetica", 12)
-    p.drawString(3 * inch, y_pos, str(movimiento.id))
-    y_pos -= 0.3 * inch
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, y_pos, "Fecha:")
-    p.setFont("Helvetica", 12)
-    p.drawString(3 * inch, y_pos, movimiento.fecha.strftime('%d/%m/%Y %H:%M'))
-    y_pos -= 0.3 * inch
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, y_pos, "Monto en USD:")
-    p.setFont("Helvetica", 12)
-    p.drawString(3 * inch, y_pos, f"${movimiento.monto_usd:,.2f}")
-    y_pos -= 0.3 * inch
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, y_pos, "Tasa de Cambio:")
-    p.setFont("Helvetica", 12)
-    p.drawString(3 * inch, y_pos, f"${movimiento.tasa_cambio:,.2f}")
-    y_pos -= 0.3 * inch
-    
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(1 * inch, y_pos, "Monto en DOP:")
-    p.setFont("Helvetica", 12)
-    p.drawString(3 * inch, y_pos, f"${movimiento.monto_pesos:,.2f}")
-    y_pos -= 0.3 * inch
-    
-    if movimiento.descripcion:
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(1 * inch, y_pos, "Descripción:")
-        p.setFont("Helvetica", 12)
-        # Manejar descripción larga
-        desc_lines = []
-        words = movimiento.descripcion.split()
-        line = ""
-        for word in words:
-            if len(line + " " + word) <= 50:
-                line += " " + word
-            else:
-                desc_lines.append(line.strip())
-                line = word
-        if line:
-            desc_lines.append(line.strip())
-        
-        for line in desc_lines:
-            p.drawString(3 * inch, y_pos, line)
-            y_pos -= 0.2 * inch
-    
-    # Información de gastos y servicios si existen - CORREGIDO
-    try:
-        gastos = Gasto.objects.filter(entrada=movimiento)
-        servicios = ServicioPago.objects.filter(entrada=movimiento)
-        
-        # Calcular totales
-        total_gastos = gastos.aggregate(total=Sum('monto'))['total'] or 0
-        total_servicios = servicios.aggregate(total=Sum('monto'))['total'] or 0
-        saldo_disponible = movimiento.monto_pesos - total_gastos - total_servicios
-        
-        y_pos -= 0.3 * inch
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(1 * inch, y_pos, "Resumen Financiero")
-        y_pos -= 0.3 * inch
-        
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(1 * inch, y_pos, "Total Gastos:")
-        p.setFont("Helvetica", 12)
-        p.drawString(3 * inch, y_pos, f"${total_gastos:,.2f}")
-        y_pos -= 0.2 * inch
-        
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(1 * inch, y_pos, "Total Servicios:")
-        p.setFont("Helvetica", 12)
-        p.drawString(3 * inch, y_pos, f"${total_servicios:,.2f}")
-        y_pos -= 0.2 * inch
-        
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(1 * inch, y_pos, "Saldo Disponible:")
-        p.setFont("Helvetica", 12)
-        p.drawString(3 * inch, y_pos, f"${saldo_disponible:,.2f}")
-        
-    except Exception as e:
-        # Si hay error al calcular gastos/servicios, continuar sin esa sección
-        print(f"Error calculando gastos/servicios: {str(e)}")
-        y_pos -= 0.3 * inch
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(1 * inch, y_pos, "Nota: Información de gastos no disponible")
-    
-    # Pie de página
-    p.setFont("Helvetica", 8)
-    p.drawString(1 * inch, 0.5 * inch, f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    
-    p.showPage()
-    p.save()
+    # Para impresión, usar 'inline' para que se abra directamente en el navegador
+    response['Content-Disposition'] = f'inline; filename="impresion_conversiones_{datetime.now().strftime("%d%m%Y_%I%M%S")}.pdf"'
+    response.write(pdf)
     
     return response
 # =============================================================================

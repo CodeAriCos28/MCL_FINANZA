@@ -14,7 +14,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES .parent
 load_dotenv()
 
 # Quick-start development settings - unsuitable for production
@@ -29,7 +29,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # ALLOWED_HOSTS = []
 # settings.py
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', '.vercel.app']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', ' codearicos.pythonanywhere.com ']
 
 
 CSRF_TRUSTED_ORIGINS = [
@@ -151,13 +151,20 @@ LOGOUT_REDIRECT_URL = '/'  # Where to redirect after logout
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-
 # Directorio donde Django almacenará los arachivos subidos (ej. comprobantes)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR,  'media')
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+
+print("=" * 80)
+print(f"BASE_DIR: {BASE_DIR}")
+print(f"STATICFILES_DIRS: {STATICFILES_DIRS}")
+print("=" * 80)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

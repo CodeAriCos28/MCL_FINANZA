@@ -18,6 +18,7 @@ urlpatterns = [
     path('convertidor/reporte-detalle-pdf/<int:id>/', views.convertidor_reporte_detalle_pdf, name='convertidor_reporte_detalle_pdf'),
     path('api/convertidor/movimientos/', views.api_movimientos, name='api_movimientos'),
     path('api/convertidor/estadisticas/', views.api_estadisticas, name='api_estadisticas'),
+    path('convertidor/imprimir-todo/', views.convertidor_imprimir_todo, name='convertidor_imprimir_todo'),
     
      # ============================================================================================================
     #                                   URLs PRINCIPALES DEL MÓDULO GASTOS
