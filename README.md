@@ -1,6 +1,6 @@
 # 💰 MCL_FINANZA
 
-MCL_FINANZA es una aplicación web orientada a la gestión financiera básica y la conversión de moneda, enfocada principalmente en la conversión de dólares estadounidenses (USD) a pesos dominicanos (DOP), permitiendo una mejor organización y visualización de información financiera.
+MCL_FINANZA es una aplicación web de gestión financiera desarrollada en Django que ofrece cuatro módulos principales: Convertidor para transformar montos de USD a DOP con tasas actualizadas; Gastos que permite registrar, categorizar y hacer seguimiento de gastos personales; Servicios para administrar y controlar pagos recurrentes como suscripciones y facturas; y Dashboard que presenta visualizaciones gráficas y resúmenes estadísticos de la actividad financiera. La aplicación proporciona una interfaz intuitiva para organizar finanzas personales, facilitando el control de ingresos, egresos y conversiones de moneda, todo centralizado en una plataforma web accesible y fácil de usar para una mejor toma de decisiones financieras.
 
 ## 🌐 Demo en línea
 
