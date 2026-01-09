@@ -29,7 +29,7 @@ urlpatterns = [
     path('gastos/eliminar/<int:pk>/', views.gastos_eliminar, name='gastos_eliminar'),
     path('gastos/pdf/<int:pk>/', views.gastos_pdf, name='gastos_pdf'),
     path('gastos/pdf-historial/', views.gastos_pdf_historial, name='gastos_pdf_historial'),
-    path('gastos/imprimir/', views.gastos_imprimir_historial, name='gastos_imprimir_historial'),
+    path('gastos/imprimir-historial/', views.gastos_imprimir_historial, name='gastos_imprimir_historial'),
     path('api/gastos/', views.api_gastos, name='api_gastos'),
     path('api/categorias/', views.api_categorias, name='api_categorias'),
     path('api/dashboard/', views.api_dashboard, name='api_dashboard'),
@@ -54,5 +54,8 @@ urlpatterns = [
     
  
     path('dashboard/', views.dashboard_index, name='dashboard'),
-    path('dashboard/api/', views.dashboard_api, name='dashboard_api'), 
+    path('dashboard/api/', views.dashboard_api, name='dashboard_api'),
+    path('reporte-movimiento/<str:tipo_movimiento>/<int:id>/',views.dashboard_reporte_detalle_pdf,name='dashboard_reporte_detalle_pdf'),
+    path('dashboard/reporte-pdf/', views.dashboard_reporte_pdf, name='dashboard_reporte_pdf'),
+    path('dashboard/imprimir/', views.dashboard_imprimir_historial, name='dashboard_imprimir'),
 ]

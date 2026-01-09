@@ -1541,6 +1541,13 @@ textarea {
         max-height: 400px;
     }
 
+    .actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
     table {
         font-size: 12px;
         /* min-width removido para hacerla responsive */
@@ -1744,6 +1751,13 @@ textarea {
         font-size: 11px;
     }
 
+    .actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
     .badge {
         font-size: 10px;
         padding: 4px 8px;
@@ -1820,6 +1834,13 @@ textarea {
 
     .btn-ver-mas {
         font-size: 10px;
+    }
+
+    .actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: 4px;
+        flex-wrap: nowrap;
     }
 }
 
@@ -1924,7 +1945,7 @@ textarea {
             </a>
 
             <!-- Cerrar sesión para todos -->
-            <a href="{% url 'index' %}" class="menu-item">
+            <a href="{% url 'logout' %}" class="menu-item">
                 <i class='bx bx-log-out'></i>
                 <span>Cerrar Sesión</span>
             </a>
@@ -1932,7 +1953,7 @@ textarea {
 
         <div class="sidebar-footer">
             <small>
-                MLAN FINANCE © 2025  V{{ version }} 
+                MLAN FINANCE © {{ version }} 
                 <!-- Debug: {{ version|default:"NO_VERSION" }} -->
             </small>
         </div>
@@ -3341,6 +3362,9 @@ if (document.readyState === 'loading') {
 } else {
     inicializarAplicacion();
 }
+
+
+
 
 // Hacer funciones disponibles globalmente
 window.eliminarMovimiento = eliminarMovimiento;

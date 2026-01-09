@@ -1,5 +1,4 @@
 # finanzas/models.py - VERSIÓN COMPLETAMENTE CORREGIDA
-
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
@@ -43,6 +42,7 @@ TIPO_COMPROBANTE_CHOICES = [
     ('RECIBO', 'Recibo'),
     ('TICKET', 'Ticket'),
     ('TRANSFERENCIA', 'Transferencia'),
+    ('RAFAEL', 'Rafael'),
 ]
 
 # =============================================================================

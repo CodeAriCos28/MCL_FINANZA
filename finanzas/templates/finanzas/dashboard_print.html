@@ -1,0 +1,587 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Dashboard - MLAN FINANCE</title>
+    <style>
+        /* Estilos para impresión profesional A4 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            background: #fff;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 210mm; /* Ancho A4 */
+            min-height: 297mm; /* Alto A4 */
+            margin: 0 auto;
+            padding: 20mm; /* Márgenes internos consistentes */
+        }
+
+        /* Evitar que se impriman elementos no deseados */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 20mm; /* Márgenes consistentes en impresión */
+            }
+
+            body {
+                font-size: 10pt;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                min-height: auto !important;
+            }
+
+            .container {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            /* Mejorar calidad de impresión */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Control de paginación */
+            .avoid-break {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+
+        /* ENCABEZADO */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #035087;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .company-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-name {
+            color: #035087;
+            font-size: 18pt;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .company-subtitle {
+            color: #011b5c;
+            font-size: 11pt;
+            font-weight: 400;
+        }
+
+        .report-meta {
+            text-align: right;
+        }
+        
+        .report-title {
+            color: #035087;
+            font-size: 14pt;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .report-date {
+            color: #666;
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+
+        .report-period {
+            color: #011b5c;
+            font-size: 10pt;
+            font-weight: 500;
+        }
+
+        /* Información del usuario */
+        .user-info {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 11px;
+        }
+
+
+        /* Tarjetas de resumen */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            padding: 15px;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #035087;
+        }
+
+        .card-income .card-value { color: #2e7d32; }
+        .card-expenses .card-value { color: #c62828; }
+        .card-balance .card-value { color: #1565c0; }
+        .card-services .card-value { color: #ef6c00; }
+
+        /* Estadísticas rápidas */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #035087;
+        }
+
+        /* Tabla de movimientos */
+        .table-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: #035087;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #035087;
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 10px;
+        }
+
+        thead {
+            background: #035087;
+            color: white;
+        }
+
+        th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            border: none;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        td {
+            padding: 10px 8px;
+            vertical-align: top;
+        }
+
+        /* Badges para tipos */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-income { 
+            background-color: #e8f5e9; 
+            color: #2e7d32; 
+            border: 1px solid #c8e6c9;
+        }
+
+        .badge-expense { 
+            background-color: #ffebee; 
+            color: #c62828; 
+            border: 1px solid #ffcdd2;
+        }
+
+        .badge-service { 
+            background-color: #fff3e0; 
+            color: #ef6c00; 
+            border: 1px solid #ffe0b2;
+        }
+
+        .badge-category { 
+            background-color: #e3f2fd; 
+            color: #1565c0; 
+            border: 1px solid #bbdefb;
+        }
+
+        /* Pie de página */
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            color: #666;
+            font-size: 10px;
+        }
+
+        .footer p {
+            margin-bottom: 5px;
+        }
+
+        .disclaimer {
+            font-style: italic;
+            color: #999;
+            font-size: 9px;
+            margin-top: 10px;
+        }
+
+        /* Botón de impresión (solo visible en pantalla) */
+        .print-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #035087;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(3, 80, 135, 0.3);
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            background: #011b5c;
+        }
+
+        /* Ajustes específicos para impresión */
+        @media print {
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+            
+            .card {
+                padding: 12px;
+            }
+            
+            .card-value {
+                font-size: 18px;
+            }
+            
+            table {
+                font-size: 9px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+            
+            .quick-stats {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+            
+            .section-title {
+                font-size: 14px;
+            }
+            
+            /* Asegurar que las tarjetas y la tabla estén en la misma página si hay espacio */
+            .summary-section {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Para pantallas pequeñas */
+        @media screen and (max-width: 768px) {
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .logo-container {
+                justify-content: center;
+            }
+            
+            .report-meta {
+                text-align: center;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head onload="window.print()">
+<body >
+    <div class="container">
+        <!-- Encabezado con logo y nombre de la empresa -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="{% static 'img/logo.ico' %}" alt="MLAN FINANCE" class="company-logo">
+                <div class="company-info">
+                    <div class="company-name">MLAN FINANCE</div>
+                    <div class="company-subtitle">Sistema de Reportes Financieros</div>
+                </div>
+            </div>
+            
+            <div class="report-meta">
+                <div class="report-title">Dashboard Financiero</div>
+                <div class="report-date">Reporte generado: {{ fecha_reporte }}</div>
+                <div class="report-period">Periodo: {{ periodo.inicio }} al {{ periodo.fin }}</div>
+            </div>
+        </div>
+
+        <!-- Información del usuario -->
+        <div class="user-info">
+            <strong>Usuario:</strong> {{ usuario.nombre }} ({{ usuario.username }}) | 
+            <strong>Reporte:</strong> {{ titulo_reporte }} | 
+            <strong>Mes:</strong> {{ periodo.mes_actual }}
+        </div>
+
+        <!-- Sección de tarjetas de resumen y estadísticas -->
+        <div class="summary-section">
+            <!-- Tarjetas de resumen -->
+            <div class="summary-cards">
+                <div class="card card-income">
+                    <div class="card-title">Total Entradas del Mes</div>
+                    <div class="card-value">RD$ {{ totales.entradas_mes_actual|floatformat:2|intcomma  }}</div>
+                </div>
+                
+                <div class="card card-expenses">
+                    <div class="card-title">Total Gastado del Mes</div>
+                    <div class="card-value">RD$ {{ totales.total_gastado_mes_actual|floatformat:2|intcomma }}</div>
+                </div>
+                
+                <div class="card card-balance">
+                    <div class="card-title">Balance Disponible</div>
+                    <div class="card-value">RD$ {{ totales.balance_general|floatformat:2|intcomma  }}</div>
+                </div>
+                
+                <div class="card card-services">
+                    <div class="card-title">Servicios Pagados</div>
+                    <div class="card-value">{{ totales.cantidad_servicios }} servicios</div>
+                </div>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div class="quick-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Total Movimientos</div>
+                    <div class="stat-value">{{ estadisticas.total_movimientos }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Entradas</div>
+                    <div class="stat-value">{{ estadisticas.total_entradas_periodo }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Gastos</div>
+                    <div class="stat-value">{{ estadisticas.total_gastos_periodo }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Servicios</div>
+                    <div class="stat-value">{{ estadisticas.total_servicios_periodo }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de movimientos -->
+        <div class="table-section">
+            <h3 class="section-title">Movimientos del Periodo ({{ periodo.inicio }} al {{ periodo.fin }})</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Monto (RD$)</th>
+                        <th>Categoría</th>
+                        <th>Responsable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimiento in movimientos %}
+                    <tr>
+                        <td>{{ movimiento.fecha|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if movimiento.tipo == 'Entrada' %}
+                            <span class="badge badge-income">{{ movimiento.tipo }}</span>
+                            {% elif movimiento.tipo == 'Gasto' %}
+                            <span class="badge badge-expense">{{ movimiento.tipo }}</span>
+                            {% elif movimiento.tipo == 'Servicio' %}
+                            <span class="badge badge-service">{{ movimiento.tipo }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ movimiento.descripcion|truncatechars:50 }}</td>
+                        <td style="font-weight: 600; text-align: right;">
+                            RD$ {{ movimiento.monto|floatformat:2|intcomma  }}
+                        </td>
+                        <td><span class="badge badge-category">{{ movimiento.categoria }}</span></td>
+                        <td>{{ movimiento.responsable }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+                            No hay movimientos en el periodo seleccionado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Resumen de gastos por categoría -->
+        {% if estadisticas.gastos_por_categoria %}
+        <div class="table-section">
+            <h3 class="section-title">Gastos por Categoría (Mes Actual)</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th width="40">Categoría</th>
+                        <th width="100">Total (RD$)</th>
+                        <th width="50">Porcentaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria in estadisticas.gastos_por_categoria %}
+                    <tr>
+                        <td>{{ categoria.categoria }}</td>
+                        <td style="font-weight: 600; text-align: center;">
+                            {{ categoria.total|floatformat:2|intcomma }}
+
+                        </td>
+                        <td style="text-align: center;">
+                            {% widthratio categoria.total totales.gastos_mes_actual 100 as percentage %}
+                            {{ percentage|floatformat:1 }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="font-weight: 800; background-color: #f0f0f0;">
+                        <td>TOTAL</td>
+                        <td style="text-align: center;">{{ totales.gastos_mes_actual|floatformat:2|intcomma  }}</td>
+                        <td style="text-align: center;">100%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Pie de página -->
+        <div class="footer">
+            <p><strong>MLAN FINANCE - Sistema de Gestión Financiera</strong></p>
+            <p>Reporte generado automáticamente por el sistema</p>
+            <p>Página 1 de 1 | {{ fecha_reporte }}</p>
+            
+            <div class="disclaimer">
+                Este documento es confidencial y para uso exclusivo de MLAN FINANCE.
+                Cualquier distribución no autorizada está prohibida.
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para imprimir (solo visible en pantalla) -->
+    <button class="print-button no-print" onclick="window.print()">
+        <i class="fas fa-print" style="margin-right: 8px;"></i>
+        Imprimir Reporte
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Asegurar márgenes en vista previa de impresión
+            var style = document.createElement('style');
+            style.innerHTML = `
+                @media print {
+                    @page {
+                        margin: 20mm !important;
+                    }
+                    body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

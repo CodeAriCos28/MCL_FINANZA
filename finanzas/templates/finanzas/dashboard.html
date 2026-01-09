@@ -437,10 +437,51 @@ body::before {
 
 .card-icon {
     font-size: 32px;
+    margin-bottom: 15px;
     position: relative;
     z-index: 2;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.card-income  .card-icon {
+    color: #4caf50;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.2) 100%);
 }
 
+.card-expenses .card-icon {
+    color: #f44336;
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(244, 67, 54, 0.2) 100%);
+}
+
+.card-balance  .card-icon {
+    color: #2196f3;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.2) 100%);
+}
+.card-services   .card-icon {
+    color: #ef6c00;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 152, 0, 0.3) 100%);
+}
+
+.card-income {
+    background: rgba(59, 253, 45, 0.101);
+}
+
+.card-expenses {
+    background: rgba(252, 48, 48, 0.195);
+}
+
+.card-balance {
+    background: rgba(33, 150, 243, 0.12);
+}
+.card-services {
+    background: rgba(255, 152, 0, 0.15);
+}
 .card-income .card-icon { color: #2e7d32; }
 .card-expenses .card-icon { color: #c62828; }
 .card-balance .card-icon { color: #1565c0; }
@@ -465,6 +506,8 @@ body::before {
     z-index: 2;
     line-height: 1.2;
 }
+
+
 
 /* ============================================================================
    GRÁFICOS - DESKTOP (2 COLUMNAS)
@@ -553,7 +596,7 @@ body::before {
 }
 
 /* ============================================================================
-   TABLAS - DESKTOP CON SCROLL HORIZONTAL
+   TABLAS - CON SCROLL VERTICAL Y HORIZONTAL
    ============================================================================ */
 .table-container {
     background: rgba(255, 255, 255, 0.98);
@@ -565,18 +608,24 @@ body::before {
     border: 1px solid rgba(66, 165, 245, 0.2);
     overflow: hidden;
     width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .table-container-inner {
-    overflow-x: auto;
+    overflow: auto; /* Scroll tanto vertical como horizontal */
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(66, 165, 245, 0.3) transparent;
     border-radius: 16px;
     margin-top: 25px;
+    flex: 1;
+    max-height: 500px; /* Altura máxima para activar scroll vertical */
 }
 
+/* Scrollbar personalizado */
 .table-container-inner::-webkit-scrollbar {
+    width: 8px;
     height: 8px;
 }
 
@@ -592,6 +641,17 @@ body::before {
 
 .table-container-inner::-webkit-scrollbar-thumb:hover {
     background: rgba(66, 165, 245, 0.7);
+}
+
+/* Scrollbar vertical específico */
+.table-container-inner::-webkit-scrollbar:vertical {
+    width: 10px;
+}
+
+/* Para Firefox */
+.table-container-inner {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(66, 165, 245, 0.5) rgba(227, 242, 253, 0.3);
 }
 
 .controls-bar {
@@ -645,6 +705,7 @@ table {
     min-width: 900px;
 }
 
+/* Cabecera fija */
 thead {
     background: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
     position: sticky;
@@ -1270,9 +1331,6 @@ textarea {
 }
 
 /* ============================================================================
-   MEDIA QUERIES - TABLETS (768px - 1024px)
-   ============================================================================ */
-/* ============================================================================
    MEDIA QUERIES - TABLETS Y LAPTOPS PEQUEÑAS (Max 1024px)
    ============================================================================ */
 @media (max-width: 1024px) {
@@ -1376,6 +1434,10 @@ textarea {
         padding: 15px;
         overflow-x: auto;
     }
+    
+    .table-container-inner {
+        max-height: 400px; /* Menor altura en tablets */
+    }
 
     .form-grid {
         grid-template-columns: 1fr; /* Columna única en formularios */
@@ -1424,9 +1486,10 @@ textarea {
 
     .header-actions {
         width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Botones en paralelo */
-        gap: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-start;
     }
 
     /* 3. Dashboard Cards (De 4 columnas a 1 o 2) */
@@ -1438,7 +1501,7 @@ textarea {
     .card {
         padding: 20px;
         display: flex;
-        flex-direction: row; /* Icono al lado del texto para ahorrar espacio vertical */
+        flex-direction:column; /* Icono al lado del texto para ahorrar espacio vertical */
         align-items: center;
         gap: 20px;
         min-height: auto;
@@ -1464,6 +1527,11 @@ textarea {
         padding: 10px;
         overflow-x: auto; /* Scroll suave */
         -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-container-inner {
+        max-height: 350px; /* Ajuste para móviles */
+        margin-top: 15px;
     }
 
     table {
@@ -1609,6 +1677,7 @@ textarea {
     
     .table-container-inner {
         margin-top: 15px;
+        max-height: 300px; /* Aún menos en móviles pequeños */
     }
     
     table {
@@ -1767,6 +1836,10 @@ textarea {
     .table-container {
         padding: 12px;
         border-radius: 14px;
+    }
+    
+    .table-container-inner {
+        max-height: 280px; /* Ajuste para móviles muy pequeños */
     }
     
     table {
@@ -2019,7 +2092,7 @@ textarea {
             </a>
 
             <!-- Cerrar sesión para todos -->
-            <a href="{% url 'index' %}" class="menu-item">
+            <a href="{% url 'logout' %}" class="menu-item">
                 <i class='bx bx-log-out'></i>
                 <span>Cerrar Sesión</span>
             </a>
@@ -2027,7 +2100,7 @@ textarea {
 
         <div class="sidebar-footer">
             <small>
-                MLAN FINANCE © 2025  V{{ version }} 
+                MLAN FINANCE © {{ version }} 
                 <!-- Debug: {{ version|default:"NO_VERSION" }} -->
             </small>
         </div>
@@ -2086,80 +2159,6 @@ textarea {
                     </div>
                 </div>
             </div>
-
-            <!-- FILTROS -->
-            <!-- <div class="filters-panel">
-                <h3 class="filters-title">
-                    <i class="fas fa-filter"></i>
-                    Filtros Globales
-                </h3>
-                <div class="filters-form">
-                    <div class="form-group">
-                        <label for="dateFrom">
-                            <i class="fas fa-calendar-alt"></i>
-                            Fecha Desde
-                        </label>
-                        <input type="date" id="dateFrom" name="dateFrom">
-                    </div>
-                    <div class="form-group">
-                        <label for="dateTo">
-                            <i class="fas fa-calendar-alt"></i>
-                            Fecha Hasta
-                        </label>
-                        <input type="date" id="dateTo" name="dateTo">
-                    </div>
-                    <div class="form-group">
-                        <label for="typeFilter">
-                            <i class="fas fa-exchange-alt"></i>
-                            Tipo de Movimiento
-                        </label>
-                        <select id="typeFilter" name="typeFilter">
-                            <option value="">Todos los tipos</option>
-                            <option value="income">Entrada</option>
-                            <option value="expense">Gasto</option>
-                            <option value="service">Servicio</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="categoryFilter">
-                            <i class="fas fa-tags"></i>
-                            Categoría
-                        </label>
-                        <select id="categoryFilter" name="categoryFilter">
-                            <option value="">Todas las categorías</option>
-                            <option value="alimentacion">Alimentación</option>
-                            <option value="transporte">Transporte</option>
-                            <option value="servicios">Servicios</option>
-                            <option value="equipos">Equipos</option>
-                            <option value="oficina">Oficina</option>
-                            <option value="otros">Otros</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="userFilter">
-                            <i class="fas fa-user"></i>
-                            Usuario
-                        </label>
-                        <select id="userFilter" name="userFilter">
-                            <option value="">Todos los usuarios</option>
-                            <option value="carmen">Carmen García</option>
-                            <option value="juan">Juan Pérez</option>
-                            <option value="maria">María Rodríguez</option>
-                            <option value="carlos">Carlos López</option>
-                        </select>
-                    </div>
-                    <div class="filters-actions">
-                        <button class="btn-apply" id="btnApplyFilters">
-                            <i class="fas fa-check"></i>
-                            Aplicar
-                        </button>
-                        <button class="btn-clear" id="btnClearFilters">
-                            <i class="fas fa-times"></i>
-                            Limpiar
-                        </button>
-                    </div>
-                </div>
-            </div> -->
 
             <!-- GRÁFICOS -->
             <div class="charts-container">
@@ -2229,12 +2228,12 @@ textarea {
                 </div>
             </div>
 
-            <!-- TABLA -->
+            <!-- TABLA CON SCROLL VERTICAL -->
             <div class="table-container">
                 <div class="controls-bar">
                     <h3 class="filters-title">
                         <i class="fas fa-table"></i>
-                        Resumen de Movimientos
+                        Resumen de Movimientos (Último mes y 15 días anteriores)
                     </h3>
                     <div class="controls-right">
                         <button class="btn-add" id="btnExportAll">
@@ -2252,22 +2251,25 @@ textarea {
                     </div>
                 </div>
 
-                <table id="movementsTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Tipo</th>
-                            <th>Descripción</th>
-                            <th>Monto</th>
-                            <th>Categoría</th>
-                            <th>Responsable</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Los registros se cargarán dinámicamente aquí -->
-                    </tbody>
-                </table>
+                <!-- CONTENEDOR CON SCROLL -->
+                <div class="table-container-inner">
+                    <table id="movementsTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Categoría</th>
+                                <th>Responsable</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Los registros se cargarán dinámicamente aquí -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -3083,8 +3085,10 @@ function updateMonthlyChart() {
 // ============================================================================
 // FUNCIONES AUXILIARES PARA GRÁFICOS
 // ============================================================================
+
+// CORREGIDO: Función para procesar datos diarios evitando problemas de timezone
 function processDailyChartData(entradasDiarias, gastosDiarias, serviciosDiarias) {
-    // Convertir los arrays a objetos para acceso rápido
+    // Convertir arrays a objetos para acceso rápido
     const entradasMap = {};
     const gastosMap = {};
     const serviciosMap = {};
@@ -3104,16 +3108,21 @@ function processDailyChartData(entradasDiarias, gastosDiarias, serviciosDiarias)
     // Generar los últimos 30 días
     const dias = [];
     const hoy = new Date();
+    
     for (let i = 29; i >= 0; i--) {
         const fecha = new Date();
         fecha.setDate(hoy.getDate() - i);
-        const diaKey = fecha.getFullYear() + '-' + 
-                      String(fecha.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(fecha.getDate()).padStart(2, '0');
+        
+        // Formatear como YYYY-MM-DD usando valores locales
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, '0');
+        const day = String(fecha.getDate()).padStart(2, '0');
+        
+        const diaKey = `${year}-${month}-${day}`;
         dias.push(diaKey);
     }
     
-    // Formatear labels para mostrar (día/mes)
+    // Formatear labels para mostrar
     const labels = dias.map(dia => formatDayForChart(dia));
     
     // Mapear datos a los días correspondientes
@@ -3129,8 +3138,9 @@ function processDailyChartData(entradasDiarias, gastosDiarias, serviciosDiarias)
     };
 }
 
+// CORREGIDO: Función para procesar datos mensuales
 function processMonthlyChartData(entradasMensuales, gastosMensuales, serviciosMensuales) {
-    // Convertir los arrays a objetos para acceso rápido
+    // Convertir arrays a objetos
     const entradasMap = {};
     const gastosMap = {};
     const serviciosMap = {};
@@ -3150,16 +3160,19 @@ function processMonthlyChartData(entradasMensuales, gastosMensuales, serviciosMe
     // Generar los últimos 6 meses
     const meses = [];
     const hoy = new Date();
+    
     for (let i = 5; i >= 0; i--) {
         const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-        const mesKey = fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0');
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, '0');
+        const mesKey = `${year}-${month}`;
         meses.push(mesKey);
     }
     
-    // Formatear labels para mostrar
+    // Formatear labels
     const labels = meses.map(mes => formatMonthForChart(mes));
     
-    // Mapear datos a los meses correspondientes
+    // Mapear datos
     const entradasData = meses.map(mes => entradasMap[mes] || 0);
     const gastosData = meses.map(mes => gastosMap[mes] || 0);
     const serviciosData = meses.map(mes => serviciosMap[mes] || 0);
@@ -3172,34 +3185,44 @@ function processMonthlyChartData(entradasMensuales, gastosMensuales, serviciosMe
     };
 }
 
+// CORREGIDO: Formatea un día para el gráfico (ej: "31 Dic") sin problemas de timezone
 function formatDayForChart(dayString) {
     if (!dayString) return 'N/D';
     
     try {
-        const date = new Date(dayString + 'T00:00:00');
-        return date.toLocaleDateString('es-DO', { 
-            day: '2-digit',
-            month: 'short'
-        });
+        // Parsear el string YYYY-MM-DD sin crear objeto Date
+        // para evitar problemas de timezone
+        const [year, month, day] = dayString.split('-');
+        
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        const mesIndex = parseInt(month, 10) - 1;
+        const diaNum = parseInt(day, 10);
+        
+        return `${diaNum} ${meses[mesIndex]}`;
     } catch (error) {
-        console.error('Error formateando día:', error);
+        console.error('Error formateando día para gráfico:', error);
         return dayString;
     }
 }
 
+// CORREGIDO: Formatea un mes para el gráfico (ej: "Dic 24")
 function formatMonthForChart(monthString) {
     if (!monthString) return 'N/D';
     
     try {
         const [year, month] = monthString.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1);
         
-        return date.toLocaleDateString('es-DO', { 
-            month: 'short',
-            year: '2-digit'
-        });
+        const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        
+        const mesIndex = parseInt(month, 10) - 1;
+        const yearShort = year.slice(-2);
+        
+        return `${meses[mesIndex]} ${yearShort}`;
     } catch (error) {
-        console.error('Error formateando mes:', error);
+        console.error('Error formateando mes para gráfico:', error);
         return monthString;
     }
 }
@@ -3306,7 +3329,7 @@ function getChartById(chartId) {
 }
 
 // ============================================================================
-// ACTUALIZACIÓN DE TABLA
+// ACTUALIZACIÓN DE TABLA - ¡CORRECCIÓN PRINCIPAL AQUÍ!
 // ============================================================================
 function updateTable() {
     const tableBody = document.getElementById('tableBody');
@@ -3332,6 +3355,9 @@ function updateTable() {
         tableBody.appendChild(row);
     });
     
+    // Actualizar el título con el número de registros
+    updateTableTitle(allMovements.length);
+    
     console.log(`Tabla actualizada con ${allMovements.length} movimientos`);
 }
 
@@ -3341,12 +3367,22 @@ function getAllMovementsForTable() {
     // Agregar entradas
     if (dashboardData.movimientos?.ultimas_entradas) {
         dashboardData.movimientos.ultimas_entradas.forEach(entrada => {
+            // Obtener timestamp de creación - usar fecha_hora si existe, sino usar fecha
+            const timestamp = entrada.fecha_hora || entrada.fecha_creacion || entrada.fecha;
+            
             movements.push({
                 ...entrada,
                 type: 'income',
                 tableType: 'Entrada',
                 category: 'Conversión USD-DOP',
-                proveedor: 'Maria DC Lantigua'
+                proveedor: 'Maria DC Lantigua',
+                // Agregar datos para el reporte PDF
+                tipo_movimiento: 'entrada',
+                id: entrada.id || entrada.pk || entrada.movimiento_id,
+                // ¡IMPORTANTE! Agregar timestamp para ordenar
+                _timestamp: new Date(timestamp).getTime(),
+                // Mantener la fecha original para display
+                _fecha_original: timestamp
             });
         });
     }
@@ -3354,12 +3390,22 @@ function getAllMovementsForTable() {
     // Agregar gastos
     if (dashboardData.movimientos?.ultimos_gastos) {
         dashboardData.movimientos.ultimos_gastos.forEach(gasto => {
+            // Obtener timestamp de creación
+            const timestamp = gasto.fecha_hora || gasto.fecha_creacion || gasto.fecha;
+            
             movements.push({
                 ...gasto,
                 type: 'expense',
                 tableType: 'Gasto',
                 category: getCategoryLabel(gasto.categoria),
-                proveedor: gasto.proveedor || "No especificado"
+                proveedor: gasto.proveedor || "No especificado",
+                // Agregar datos para el reporte PDF
+                tipo_movimiento: 'gasto',
+                id: gasto.id || gasto.pk || gasto.gasto_id,
+                // ¡IMPORTANTE! Agregar timestamp para ordenar
+                _timestamp: new Date(timestamp).getTime(),
+                // Mantener la fecha original para display
+                _fecha_original: timestamp
             });
         });
     }
@@ -3367,24 +3413,57 @@ function getAllMovementsForTable() {
     // Agregar servicios
     if (dashboardData.movimientos?.ultimos_servicios) {
         dashboardData.movimientos.ultimos_servicios.forEach(servicio => {
+            // Obtener timestamp de creación
+            const timestamp = servicio.fecha_hora || servicio.fecha_creacion || servicio.fecha;
+            
             movements.push({
                 ...servicio,
                 type: 'service',
                 tableType: 'Servicio',
                 category: getServiceTypeLabel(servicio.tipo_servicio),
-                proveedor: servicio.proveedor || "No especificado"
+                proveedor: servicio.proveedor || "No especificado",
+                // Agregar datos para el reporte PDF
+                tipo_movimiento: 'servicio',
+                id: servicio.id || servicio.pk || servicio.servicio_id,
+                // ¡IMPORTANTE! Agregar timestamp para ordenar
+                _timestamp: new Date(timestamp).getTime(),
+                // Mantener la fecha original para display
+                _fecha_original: timestamp
             });
         });
     }
     
-    // Ordenar por fecha (más reciente primero)
+    // ¡¡¡CORRECCIÓN PRINCIPAL AQUÍ!!!
+    // Ordenar por timestamp (más reciente primero) y si hay empate, por ID descendente
     return movements.sort((a, b) => {
-        const dateA = new Date(a.fecha);
-        const dateB = new Date(b.fecha);
-        return dateB - dateA;
+        // Primero por timestamp (más reciente = timestamp mayor)
+        const timeDiff = b._timestamp - a._timestamp;
+        
+        if (timeDiff !== 0) {
+            return timeDiff;
+        }
+        
+        // Si tienen el mismo timestamp, ordenar por ID descendente
+        // (asumiendo que IDs más altos son más recientes)
+        const idA = parseInt(a.id || a.pk || a.movimiento_id || 0);
+        const idB = parseInt(b.id || b.pk || b.movimiento_id || 0);
+        
+        return idB - idA;
     });
 }
 
+// Función para actualizar el título de la tabla con el número de registros
+function updateTableTitle(count) {
+    const tableTitle = document.querySelector('.filters-title');
+    if (tableTitle) {
+        tableTitle.innerHTML = `
+            <i class="fas fa-table"></i>
+            Resumen de Movimientos (${count} registros)
+        `;
+    }
+}
+
+// CORREGIDO: Función para crear filas de tabla con formateo de fecha seguro
 function createTableRow(movement, index) {
     const row = document.createElement('tr');
     
@@ -3403,7 +3482,7 @@ function createTableRow(movement, index) {
         <td>
             <div class="actions">
                 <div class="tooltip">
-                    <button class="btn-action btn-download" onclick="downloadMovementPDF(${index})">
+                    <button class="btn-action btn-download" onclick="downloadMovementPDF(${index})" data-tipo="${movement.tipo_movimiento}" data-id="${movement.id}">
                         <i class="fas fa-download"></i>
                     </button>
                     <span class="tooltiptext">Descargar PDF</span>
@@ -3519,9 +3598,62 @@ function getResponsableName(movement) {
     return 'Usuario Sistema';
 }
 
-function formatDate(dateString) {
+// CORREGIDO: Formatea una fecha para mostrar solo día/mes/año sin problemas de timezone
+function formatDateOnly(dateString) {
+    if (!dateString) return 'N/D';
+    
     try {
+        // Si la fecha ya viene en formato YYYY-MM-DD (solo fecha, sin hora)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        // Si viene con hora ISO (YYYY-MM-DDTHH:mm:ss), extraer solo la fecha
+        if (dateString.includes('T')) {
+            const [datePart] = dateString.split('T');
+            const [year, month, day] = datePart.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        // Último recurso: intentar parsear normalmente
         const date = new Date(dateString);
+        
+        // Verificar si la fecha es válida
+        if (isNaN(date.getTime())) {
+            console.error('Fecha inválida:', dateString);
+            return dateString;
+        }
+        
+        return date.toLocaleDateString('es-DO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formateando fecha:', error, dateString);
+        return dateString;
+    }
+}
+
+// CORREGIDO: Formatea una fecha con hora
+function formatDate(dateString) {
+    if (!dateString) return 'N/D';
+    
+    try {
+        // Si viene en formato YYYY-MM-DD, agregar hora 00:00:00 local
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year} 00:00`;
+        }
+        
+        const date = new Date(dateString);
+        
+        if (isNaN(date.getTime())) {
+            console.error('Fecha inválida:', dateString);
+            return dateString;
+        }
+        
         return date.toLocaleDateString('es-DO', {
             year: 'numeric',
             month: '2-digit',
@@ -3530,21 +3662,7 @@ function formatDate(dateString) {
             minute: '2-digit'
         });
     } catch (error) {
-        console.error('Error formateando fecha:', error);
-        return dateString;
-    }
-}
-
-function formatDateOnly(dateString) {
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-DO', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        });
-    } catch (error) {
-        console.error('Error formateando fecha:', error);
+        console.error('Error formateando fecha:', error, dateString);
         return dateString;
     }
 }
@@ -3660,19 +3778,46 @@ function downloadImage(imageData, filename) {
     document.body.removeChild(link);
 }
 
+// FUNCIÓN ACTUALIZADA PARA DESCARGAR REPORTES PDF DE MOVIMIENTOS INDIVIDUALES
 function downloadMovementPDF(index) {
     const movements = getAllMovementsForTable();
     const movement = movements[index];
     
     if (!movement) {
         console.error('Movimiento no encontrado para descarga');
+        showError('Movimiento no encontrado');
         return;
     }
     
-    showNotification('Descargando PDF del movimiento...', 'info');
-    // Aquí iría la lógica real de generación de PDF
+    // Verificar que el movimiento tiene los datos necesarios
+    if (!movement.tipo_movimiento || !movement.id) {
+        console.error('Datos insuficientes para generar el reporte', movement);
+        showError('Datos incompletos para generar el reporte');
+        return;
+    }
+    
+    showNotification('Generando reporte PDF...', 'info');
+    
+    // CORREGIDO: Usar la URL correcta según tu urls.py
+    // La URL debe ser: /reporte-movimiento/gasto/34/ (sin "dashboard/" al principio)
+    const url = `/reporte-movimiento/${movement.tipo_movimiento}/${movement.id}/`;
+    
+    console.log('Descargando PDF desde URL:', url);
+    
+    // Crear un enlace invisible y hacer clic en él para descargar el PDF
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    
+    // Agregar el enlace al DOM, hacer clic y luego removerlo
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Opcional: mostrar notificación de éxito después de un breve retraso
     setTimeout(() => {
-        showNotification('PDF descargado exitosamente', 'success');
+        showNotification('Reporte generado exitosamente', 'success');
     }, 1000);
 }
 
@@ -3685,10 +3830,28 @@ function downloadFullHistoryPDF() {
     }
     
     showNotification('Generando PDF del historial completo...', 'info');
-    // Aquí iría la lógica real de generación de PDF
-    setTimeout(() => {
-        showNotification('Historial exportado exitosamente', 'success');
-    }, 1500);
+    
+    // Construir URL con filtros actuales
+    let url = '/dashboard/reporte-pdf/?';
+    const params = new URLSearchParams();
+    
+    // Obtener valores de filtros (si están visibles en tu dashboard)
+    const dateFrom = document.getElementById('dateFrom')?.value;
+    const dateTo = document.getElementById('dateTo')?.value;
+    const typeFilter = document.getElementById('typeFilter')?.value;
+    const categoryFilter = document.getElementById('categoryFilter')?.value;
+    const userFilter = document.getElementById('userFilter')?.value;
+    
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (typeFilter) params.append('type', typeFilter);
+    if (categoryFilter) params.append('category', categoryFilter);
+    if (userFilter) params.append('user', userFilter);
+    
+    url += params.toString();
+    
+    // Abrir en nueva pestaña para descargar
+    window.open(url, '_blank');
 }
 
 function printFullHistory() {
@@ -3700,9 +3863,37 @@ function printFullHistory() {
     }
     
     showNotification('Preparando para impresión...', 'info');
-    setTimeout(() => {
-        window.print();
-    }, 500);
+    
+    // Construir URL con filtros actuales
+    let url = '/dashboard/imprimir/?';
+    const params = new URLSearchParams();
+    
+    // Obtener valores de filtros (si están visibles en tu dashboard)
+    const dateFrom = document.getElementById('dateFrom')?.value;
+    const dateTo = document.getElementById('dateTo')?.value;
+    const typeFilter = document.getElementById('typeFilter')?.value;
+    const categoryFilter = document.getElementById('categoryFilter')?.value;
+    const userFilter = document.getElementById('userFilter')?.value;
+    
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (typeFilter) params.append('type', typeFilter);
+    if (categoryFilter) params.append('category', categoryFilter);
+    if (userFilter) params.append('user', userFilter);
+    
+    url += params.toString();
+    
+    // Abrir en nueva ventana
+    const printWindow = window.open(url, '_blank');
+    
+    // Esperar a que cargue y luego imprimir automáticamente
+    if (printWindow) {
+        printWindow.onload = function() {
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        };
+    }
 }
 
 // ============================================================================
