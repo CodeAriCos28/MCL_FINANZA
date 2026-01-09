@@ -24,7 +24,7 @@ function resetTimer() {
             window.location.href = "/logout/";
         }, 5000);
 
-    }, 600000); 
+    }, 3600000); 
 }
 
 // Eventos que se consideran "actividad"
