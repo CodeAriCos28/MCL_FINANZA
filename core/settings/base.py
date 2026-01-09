@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES .parent
 load_dotenv()
@@ -30,7 +31,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 # settings.py
 
 # ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', ' codearicos.pythonanywhere.com ']
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
 
 # CSRF_TRUSTED_ORIGINS = [
     # 'https://*.ngrok-free.dev',  # Para permitir cualquier subdominio de ngrok-free.dev
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     # 'finanzas.apps.FinanzasConfig',
     'finanzas',
 ]
@@ -59,11 +61,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.cache.FetchFromCacheMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.cache.UpdateCacheMiddleware',
 ]
-
+     # 'django.middleware.cache.FetchFromCacheMiddleware',
+#    'django.middleware.common.CommonMiddleware',
+    # 'django.middleware.cache.UpdateCacheMiddleware',
+    
+    
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -130,6 +133,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
+# TIME_ZONE = 'America/Santo_Domingo'
 
 USE_I18N = True
 
@@ -141,7 +145,8 @@ USE_TZ = True
 # USE_TZ = True
 
 # Idioma por defecto
-LANGUAGE_CODE = 'es-do'
+LANGUAGE_CODE = 'en-us'
+USE_L10N = False
 
 # Formato de fecha
 DATE_FORMAT = 'd/m/Y'
@@ -153,7 +158,7 @@ LOGIN_REDIRECT_URL = '/convertidor/' # Where to redirect after login
 LOGOUT_REDIRECT_URL = '/'  # Where to redirect after logout
 
 # Tiempo de vida de la sesión en segundos (10 minutos)
-SESSION_COOKIE_AGE = 600
+SESSION_COOKIE_AGE = 3600
 
 # Refresca la sesión en cada petición (mantiene al usuario activo si navega)
 SESSION_SAVE_EVERY_REQUEST = True
@@ -170,7 +175,7 @@ CSRF_USE_SESSIONS = False
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
 # Forzar a que la cookie expire de inmediato al cerrar el navegador
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # No permitir que la sesión se use en múltiples pestañas si una ya cerró
 SESSION_COOKIE_HTTPONLY = True
@@ -233,7 +238,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # }
 import os
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
+# DEBUG = os.getenv("DEBUG", "False") == "True"
 
 LOGGING = {
     "version": 1,
