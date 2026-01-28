@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.utils import timezone
 from decimal import Decimal
+import pytz
 
 # =============================================================================
 # CHOICES DEFINITIONS
@@ -29,7 +30,7 @@ SERVICIOS_TIPOS = [
 
 ESTADO_CHOICES = [
     ('ACTIVO', 'Activo'),
-    ('EDITADO', 'Editado'), 
+    ('EDITADO', 'Editado'),
     ('ELIMINADO', 'Eliminado'),
     ('PENDIENTE', 'Pendiente'),
     ('APROBADO', 'Aprobado'),
@@ -46,26 +47,23 @@ TIPO_COMPROBANTE_CHOICES = [
 ]
 
 # =============================================================================
-# MÓDULO CONVERTIDOR (Modelo Principal)
-# =============================================================================
-
-from django.db import models
-from django.db.models import Sum
-from decimal import Decimal
-from django.utils import timezone
-import pytz
-
-# =============================================================================
 # MÓDULO CONVERTIDOR (Modelo Principal) - CORREGIDO
 # =============================================================================
 
+
 class MovimientoEntrada(models.Model):
-    monto_usd = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto en USD")
-    tasa_cambio = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Tasa de Cambio")
-    monto_pesos = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto en DOP", editable=False)
-    descripcion = models.CharField(max_length=200, blank=True, null=True, verbose_name="Descripción")
-    fecha = models.DateTimeField(verbose_name="Fecha de Conversión")  # NO usar auto_now_add
-    imagen = models.ImageField(upload_to='convertidor/', null=True, blank=True, verbose_name="Imagen de Factura")
+    monto_usd = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Monto en USD")
+    tasa_cambio = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Tasa de Cambio")
+    monto_pesos = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Monto en DOP", editable=False)
+    descripcion = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name="Descripción")
+    fecha = models.DateTimeField(
+        verbose_name="Fecha de Conversión")  # NO usar auto_now_add
+    imagen = models.ImageField(
+        upload_to='convertidor/', null=True, blank=True, verbose_name="Imagen de Factura")
 
     class Meta:
         verbose_name = "Movimiento de Entrada"
@@ -75,11 +73,10 @@ class MovimientoEntrada(models.Model):
     def save(self, *args, **kwargs):
         if self.monto_usd and self.tasa_cambio:
             self.monto_pesos = self.monto_usd * self.tasa_cambio
-        
-        # Si no hay fecha especificada, usar fecha actual en zona horaria de RD
+        # Si no hay fecha especificada, usar fecha actual en UTC
         if not self.fecha:
-            self.fecha = timezone.now()
-        
+            self.fecha = timezone.now()  # timezone.now() ya retorna UTC si USE_TZ=True
+        # No convertir a zona local al guardar
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -97,6 +94,25 @@ class MovimientoEntrada(models.Model):
             tz_utc = pytz.UTC
             fecha_utc = tz_utc.localize(self.fecha)
             return fecha_utc.astimezone(tz_rd)
+
+    TIMEZONE_RD = pytz.timezone('America/Santo_Domingo')
+
+    @property
+    def fecha_rd(self):
+        """Retorna la fecha en zona horaria de RD"""
+        if self.fecha:
+            if timezone.is_naive(self.fecha):
+                fecha_aware = timezone.make_aware(self.fecha, timezone.utc)
+            else:
+                fecha_aware = self.fecha
+            return fecha_aware.astimezone(self.TIMEZONE_RD)
+        return None
+
+    @property
+    def fecha_display(self):
+        """Formato dd/mm/yyyy en RD"""
+        fecha_rd = self.fecha_rd
+        return fecha_rd.strftime('%d/%m/%Y') if fecha_rd else ''
 
     @property
     def fecha_display(self):
@@ -127,7 +143,8 @@ class MovimientoEntrada(models.Model):
     def mostrar_ver_mas(self):
         """Determinar si se debe mostrar el botón 'Ver más'"""
         return bool(self.descripcion and len(self.descripcion) > 10)
-    @property 
+
+    @property
     def fecha_formateada(self):
         """Retorna la fecha formateada"""
         return self.fecha.strftime('%d/%m/%Y')
@@ -140,11 +157,11 @@ class MovimientoEntrada(models.Model):
             total_gastos = Gasto.objects.filter(
                 entrada=self
             ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-            
+
             total_servicios = ServicioPago.objects.filter(
                 entrada=self
             ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
-            
+
             return self.monto_pesos - total_gastos - total_servicios
         except Exception:
             return self.monto_pesos
@@ -153,16 +170,20 @@ class MovimientoEntrada(models.Model):
 # MÓDULO GASTOS - VERSIÓN COMPLETA CORREGIDA
 # =============================================================================
 
+
 class Gasto(models.Model):
     # Campos básicos
-    categoria = models.CharField(max_length=20, choices=CATEGORIAS_GASTOS, verbose_name="Categoría")
-    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto del Gasto")
-    descripcion = models.CharField(max_length=200, blank=True, null=True, verbose_name="Descripción del Gasto")
-    fecha = models.DateTimeField( verbose_name="Fecha del Gasto")
-    
+    categoria = models.CharField(
+        max_length=20, choices=CATEGORIAS_GASTOS, verbose_name="Categoría")
+    monto = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Monto del Gasto")
+    descripcion = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name="Descripción del Gasto")
+    fecha = models.DateTimeField(verbose_name="Fecha del Gasto")
+
     # Relación con entrada
     entrada = models.ForeignKey(
-        MovimientoEntrada, 
+        MovimientoEntrada,
         on_delete=models.CASCADE,
         verbose_name="Movimiento Asociado",
         null=True,
@@ -171,12 +192,12 @@ class Gasto(models.Model):
 
     # Campos de estado y auditoría
     estado = models.CharField(
-        max_length=20, 
-        choices=ESTADO_CHOICES, 
+        max_length=20,
+        choices=ESTADO_CHOICES,
         default='ACTIVO',
         verbose_name="Estado del Gasto"
     )
-    
+
     # Campos de comprobante
     tipo_comprobante = models.CharField(
         max_length=20,
@@ -184,33 +205,36 @@ class Gasto(models.Model):
         default='SIN_COMPROBANTE',
         verbose_name="Tipo de Comprobante"
     )
-    
+
     numero_comprobante = models.CharField(
-        max_length=100, 
-        blank=True, 
-        null=True, 
+        max_length=100,
+        blank=True,
+        null=True,
         verbose_name="Número de Comprobante"
     )
-    
+
     proveedor = models.CharField(
-        max_length=200, 
-        blank=True, 
-        null=True, 
+        max_length=200,
+        blank=True,
+        null=True,
         verbose_name="Proveedor"
     )
-    
+
     # Campos adicionales
-    notas = models.TextField(blank=True, null=True, verbose_name="Notas Adicionales")
+    notas = models.TextField(blank=True, null=True,
+                             verbose_name="Notas Adicionales")
     imagen = models.ImageField(
-        upload_to='gastos/', 
-        null=True, 
-        blank=True, 
+        upload_to='gastos/',
+        null=True,
+        blank=True,
         verbose_name="Imagen de Comprobante"
     )
-    
+
     # Campos de auditoría
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Creación")
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True, verbose_name="Fecha de Actualización")
 
     class Meta:
         verbose_name = "Gasto"
@@ -221,7 +245,7 @@ class Gasto(models.Model):
         """Validación personalizada para saldo disponible"""
         if self.entrada and self.monto:
             saldo_disponible = self.entrada.saldo_disponible
-            
+
             # Si estamos editando un gasto existente, sumamos su monto anterior al saldo disponible
             if self.pk:
                 try:
@@ -229,7 +253,7 @@ class Gasto(models.Model):
                     saldo_disponible += gasto_anterior.monto
                 except Gasto.DoesNotExist:
                     pass
-            
+
             if self.monto > saldo_disponible:
                 raise ValidationError(
                     f"Saldo insuficiente. Disponible: ${saldo_disponible:.2f}, "
@@ -248,8 +272,8 @@ class Gasto(models.Model):
     def monto_formateado(self):
         """Retorna el monto formateado como moneda"""
         return f"RD$ {self.monto:,.2f}"
-    
-    @property 
+
+    @property
     def fecha_formateada(self):
         """Retorna la fecha formateada"""
         return self.fecha.strftime('%d/%m/%Y')
@@ -258,17 +282,21 @@ class Gasto(models.Model):
 # MÓDULO SERVICIOS - VERSIÓN COMPLETA CORREGIDA
 # =============================================================================
 
+
 class ServicioPago(models.Model):
     # Campos básicos
-    tipo_servicio = models.CharField(max_length=20, choices=SERVICIOS_TIPOS, verbose_name="Tipo de Servicio")
-    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto del Pago")
-    descripcion = models.CharField(max_length=200, blank=True, null=True, verbose_name="Descripción del Pago")
-    fecha = models.DateTimeField( verbose_name="Fecha del Pago")
-    
+    tipo_servicio = models.CharField(
+        max_length=20, choices=SERVICIOS_TIPOS, verbose_name="Tipo de Servicio")
+    monto = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Monto del Pago")
+    descripcion = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name="Descripción del Pago")
+    fecha = models.DateTimeField(verbose_name="Fecha del Pago")
+
     # Relación con entrada
     entrada = models.ForeignKey(
         MovimientoEntrada,
-        on_delete=models.CASCADE,  
+        on_delete=models.CASCADE,
         verbose_name="Movimiento Asociado",
         null=True,
         blank=True
@@ -276,12 +304,12 @@ class ServicioPago(models.Model):
 
     # Campos de estado y auditoría
     estado = models.CharField(
-        max_length=20, 
-        choices=ESTADO_CHOICES, 
+        max_length=20,
+        choices=ESTADO_CHOICES,
         default='ACTIVO',
         verbose_name="Estado del Pago"
     )
-    
+
     # Campos de comprobante
     tipo_comprobante = models.CharField(
         max_length=20,
@@ -289,33 +317,36 @@ class ServicioPago(models.Model):
         default='SIN_COMPROBANTE',
         verbose_name="Tipo de Comprobante"
     )
-    
+
     numero_comprobante = models.CharField(
-        max_length=100, 
-        blank=True, 
-        null=True, 
+        max_length=100,
+        blank=True,
+        null=True,
         verbose_name="Número de Comprobante"
     )
-    
+
     proveedor = models.CharField(
-        max_length=200, 
-        blank=True, 
-        null=True, 
+        max_length=200,
+        blank=True,
+        null=True,
         verbose_name="Proveedor del Servicio"
     )
-    
+
     # Campos adicionales
-    notas = models.TextField(blank=True, null=True, verbose_name="Notas Adicionales")
+    notas = models.TextField(blank=True, null=True,
+                             verbose_name="Notas Adicionales")
     imagen = models.ImageField(
-        upload_to='servicios/', 
-        null=True, 
-        blank=True, 
+        upload_to='servicios/',
+        null=True,
+        blank=True,
         verbose_name="Imagen de Comprobante"
     )
-    
+
     # Campos de auditoría
-    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
-    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de Creación")
+    fecha_actualizacion = models.DateTimeField(
+        auto_now=True, verbose_name="Fecha de Actualización")
 
     class Meta:
         verbose_name = "Pago de Servicio"
@@ -326,7 +357,7 @@ class ServicioPago(models.Model):
         """Validación personalizada para saldo disponible"""
         if self.entrada and self.monto:
             saldo_disponible = self.entrada.saldo_disponible
-            
+
             # Si estamos editando un pago existente, sumamos su monto anterior al saldo disponible
             if self.pk:
                 try:
@@ -334,7 +365,7 @@ class ServicioPago(models.Model):
                     saldo_disponible += servicio_anterior.monto
                 except ServicioPago.DoesNotExist:
                     pass
-            
+
             if self.monto > saldo_disponible:
                 raise ValidationError(
                     f"Saldo insuficiente. Disponible: ${saldo_disponible:.2f}, "
@@ -353,8 +384,8 @@ class ServicioPago(models.Model):
     def monto_formateado(self):
         """Retorna el monto formateado como moneda"""
         return f"RD$ {self.monto:,.2f}"
-    
-    @property 
+
+    @property
     def fecha_formateada(self):
         """Retorna la fecha formateada"""
         return self.fecha.strftime('%d/%m/%Y')

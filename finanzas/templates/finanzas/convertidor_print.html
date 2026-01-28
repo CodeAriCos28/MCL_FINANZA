@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Gastos - MLAN FINANCE</title>
+    <title>Reporte de Conversiones - MLAN FINANCE</title>
     <style>
-        /* Reset y estilos base */
+        /* Estilos base - iguales al template anterior pero con ajustes menores */
         * {
             margin: 0;
             padding: 0;
@@ -24,9 +24,7 @@
         }
 
         @keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
+            to { opacity: 1; }
         }
 
         /* Estilos para impresión */
@@ -39,33 +37,17 @@
                 opacity: 1;
                 animation: none;
             }
-
-            .page-break {
-                page-break-before: always;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-            
-            /* Ocultar elementos específicos en impresión */
-            .screen-only {
-                display: none !important;
-            }
+            .screen-only { display: none !important; }
         }
 
         /* Estilos para pantalla */
         @media screen {
-            .print-only {
-                display: none !important;
-            }
-            
+            .print-only { display: none !important; }
             body {
                 padding: 20px;
                 background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 50%, #fce4ec 100%);
                 min-height: 100vh;
             }
-            
             .report-container {
                 background: white;
                 box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -135,7 +117,7 @@
             color: #666;
         }
 
-        /* Sección combinada de filtros y metadatos - 2 filas x 4 columnas */
+        /* Sección de filtros y metadatos */
         .combined-section {
             margin-bottom: 20px;
         }
@@ -155,6 +137,9 @@
         }
 
 
+
+
+
         .combined-label {
             font-size: 10px;
             color: #666;
@@ -171,14 +156,12 @@
             min-height: 18px;
         }
 
-        /* Estado de los campos cuando están vacíos */
         .no-data {
             color: #999;
             font-style: italic;
             font-size: 10px;
         }
 
-        /* Estilos para títulos de sección */
         .section-title {
             font-size: 12px;
             font-weight: bold;
@@ -188,25 +171,25 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        /* Tabla de gastos */
+        /* Tabla de conversiones */
         .table-container {
             width: 100%;
             margin-bottom: 20px;
             overflow: hidden;
         }
 
-        .expenses-table {
+        .conversions-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 11px;
         }
 
-        .expenses-table thead {
+        .conversions-table thead {
             background: linear-gradient(135deg, #035087 0%, #1e88e5 100%);
             color: white;
         }
 
-        .expenses-table th {
+        .conversions-table th {
             padding: 10px 8px;
             text-align: left;
             font-weight: bold;
@@ -214,42 +197,32 @@
             border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .expenses-table th:last-child {
+        .conversions-table th:last-child {
             border-right: none;
         }
 
-        .expenses-table tbody tr {
+        .conversions-table tbody tr {
             border-bottom: 1px solid #e0e0e0;
         }
 
-        .expenses-table tbody tr:nth-child(even) {
+        .conversions-table tbody tr:nth-child(even) {
             background-color: #f8f9fa;
         }
 
-        .expenses-table td {
+        .conversions-table td {
             padding: 8px;
             vertical-align: top;
         }
 
-        /* Estados y badges */
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            display: inline-block;
+        /* Iconos para imágenes */
+        .image-icon {
+            font-size: 14px;
+            color: #42a5f5;
         }
 
-        .status-activo {
-            background-color: rgba(76, 175, 80, 0.1);
-            color: #2e7d32;
-            border: 1px solid #66bb6a;
-        }
-
-        .status-pendiente {
-            background-color: rgba(255, 152, 0, 0.1);
-            color: #f57c00;
-            border: 1px solid #ffb74d;
+        .no-image-icon {
+            font-size: 14px;
+            color: #ccc;
         }
 
         /* Totales */
@@ -261,7 +234,7 @@
 
         .totals-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -280,7 +253,7 @@
         }
 
         .total-value {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #035087;
         }
@@ -322,9 +295,9 @@
 
         .currency {
             font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
 
-        /* Para descripciones largas */
         .description-cell {
             max-width: 200px;
             word-wrap: break-word;
@@ -392,16 +365,29 @@
             background: rgba(255,255,255,0.3);
         }
 
-        /* Responsive para la cuadrícula de 4x2 */
+        /* Responsive */
         @media (max-width: 768px) {
-            .combined-grid {
+            .combined-grid, .totals-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
         @media (max-width: 480px) {
-            .combined-grid {
+            .combined-grid, .totals-grid {
                 grid-template-columns: 1fr;
+            }
+            .report-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            .report-info {
+                text-align: center;
+            }
+            .footer-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
             }
         }
     </style>
@@ -412,14 +398,14 @@
         <!-- Encabezado -->
         <div class="report-header">
             <div class="logo-container">
-                <img src="{% static 'img/logo.ico' %}" alt="MLAN FINANCE" class="company-logo">
+                <img src="{% static 'img/logo2.ico' %}" alt="MLAN FINANCE" class="company-logo">
                 <div class="company-info">
                     <div class="company-name">MLAN FINANCE</div>
-                    <div class="company-subtitle">Sistema de Reportes Financieros</div>
+                    <div class="company-subtitle">Sistema de Conversiones USD-RD$</div>
                 </div>
             </div>
             <div class="report-info">
-                <div class="report-title">Reporte de Gastos</div>
+                <div class="report-title">Reporte de Conversiones</div>
                 <div class="report-date">Generado: {{ fecha_generacion }}</div>
             </div>
         </div>
@@ -433,8 +419,8 @@
                 <div class="combined-item filter">
                     <div class="combined-label">Fecha Desde</div>
                     <div class="combined-value">
-                        {% if filtros.fecha_desde %}
-                            {{ filtros.fecha_desde }}
+                        {% if filtros.fecha_inicio %}
+                            {{ filtros.fecha_inicio }}
                         {% else %}
                             <span class="no-data">No aplicado</span>
                         {% endif %}
@@ -445,34 +431,34 @@
                 <div class="combined-item filter">
                     <div class="combined-label">Fecha Hasta</div>
                     <div class="combined-value">
-                        {% if filtros.fecha_hasta %}
-                            {{ filtros.fecha_hasta }}
+                        {% if filtros.fecha_fin %}
+                            {{ filtros.fecha_fin }}
                         {% else %}
                             <span class="no-data">No aplicado</span>
                         {% endif %}
                     </div>
                 </div>
                 
-                <!-- Campo 3: Categoría -->
+                <!-- Campo 3: Descripción -->
                 <div class="combined-item filter">
-                    <div class="combined-label">Categoría</div>
+                    <div class="combined-label">Descripción</div>
                     <div class="combined-value">
-                        {% if filtros.categoria %}
-                            {{ filtros.categoria }}
+                        {% if filtros.descripcion %}
+                            "{{ filtros.descripcion }}"
                         {% else %}
-                            <span class="no-data">Todas las categorías</span>
+                            <span class="no-data">Cualquier descripción</span>
                         {% endif %}
                     </div>
                 </div>
                 
-                <!-- Campo 4: Entrada ID -->
+                <!-- Campo 4: Monto Mínimo USD -->
                 <div class="combined-item filter">
-                    <div class="combined-label">Entrada ID</div>
+                    <div class="combined-label">Monto Mínimo USD</div>
                     <div class="combined-value">
-                        {% if filtros.entrada_id %}
-                            {{ filtros.entrada_id }}
+                        {% if filtros.monto_min %}
+                            ${{ filtros.monto_min }}
                         {% else %}
-                            <span class="no-data">Todas las entradas</span>
+                            <span class="no-data">Cualquier monto</span>
                         {% endif %}
                     </div>
                 </div>
@@ -485,22 +471,22 @@
                 <div class="combined-item meta">
                     <div class="combined-label">Período del Reporte</div>
                     <div class="combined-value">
-                        {% if filtros.fecha_desde and filtros.fecha_hasta %}
-                            {{ filtros.fecha_desde }} al {{ filtros.fecha_hasta }}
-                        {% elif filtros.fecha_desde %}
-                            Desde {{ filtros.fecha_desde }}
-                        {% elif filtros.fecha_hasta %}
-                            Hasta {{ filtros.fecha_hasta }}
+                        {% if filtros.fecha_inicio and filtros.fecha_fin %}
+                            {{ filtros.fecha_inicio }} al {{ filtros.fecha_fin }}
+                        {% elif filtros.fecha_inicio %}
+                            Desde {{ filtros.fecha_inicio }}
+                        {% elif filtros.fecha_fin %}
+                            Hasta {{ filtros.fecha_fin }}
                         {% else %}
                             <span class="no-data">Todo el período</span>
                         {% endif %}
                     </div>
                 </div>
                 
-                <!-- Campo 6: Total de Registros -->
+                <!-- Campo 6: Total de Conversiones -->
                 <div class="combined-item meta">
-                    <div class="combined-label">Total de Registros</div>
-                    <div class="combined-value">{{ total_registros }} gastos</div>
+                    <div class="combined-label">Total de Conversiones</div>
+                    <div class="combined-value">{{ total_conversiones }} registros</div>
                 </div>
                 
                 <!-- Campo 7: Usuario -->
@@ -512,42 +498,52 @@
                 <!-- Campo 8: Tipo de Reporte -->
                 <div class="combined-item meta">
                     <div class="combined-label">Tipo de Reporte</div>
-                    <div class="combined-value">Historial de Gastos</div>
+                    <div class="combined-value">Historial de Conversiones</div>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla de gastos -->
+        <!-- Tabla de conversiones -->
         <div class="table-container">
-            <table class="expenses-table">
+            <table class="conversions-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <th width="40">#</th>
                         <th width="85">Fecha</th>
-                        <th width="130">Categoría</th>
-                        <th width="110">MONTO</th>
-                        <th class="description-cell">Responsable</th>
-                        <th class="text-center" width="85" >Estado</th>
+                        <th width="100">USD</th>
+                        <th width="90">Tasa</th>
+                        <th width="120">RD$</th>
+                        <th width="100" class="text-center">Imagen</th>
+                        <th class="description-cell">Descripción</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for gasto in gastos %}
+                    {% for conversion in conversiones %}
                     <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ gasto.fecha }}</td>
-                        <td>{{ gasto.categoria }}</td>
-                        <td class="text-right currency">{{ gasto.monto }}</td>
-                        <td class="description-cell">{{ gasto.proveedor}}</td>
+                        <td>{{ conversion.numero }}</td>
+                        <td>{{ conversion.fecha }}</td>
+                        <td class="text-right currency">{{ conversion.monto_usd }}</td>
+                        <td class="text-right">{{ conversion.tasa_cambio }}</td>
+                        <td class="text-right currency">{{ conversion.monto_pesos }}</td>
                         <td class="text-center">
-                            <span class="status-badge status-{{ gasto.estado|lower }}">
-                                {{ gasto.estado }}
-                            </span>
+                            {% if conversion.tiene_imagen %}
+                                <i class="fas fa-image" style="color: #42a5f5; font-size: 16px;"></i>
+                            {% else %}
+                                <span class="no-image-icon">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="description-cell">
+                            {% if conversion.descripcion|length > 50 %}
+                                {{ conversion.descripcion|slice:":50" }}...
+                            {% else %}
+                                {{ conversion.descripcion }}
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
                         <td colspan="7" class="text-center">
-                            No se encontraron gastos con los filtros aplicados
+                            No se encontraron conversiones con los filtros aplicados
                         </td>
                     </tr>
                     {% endfor %}
@@ -557,18 +553,23 @@
 
         <!-- Totales -->
         <div class="totals-section">
+            <div class="section-title">Resumen Financiero</div>
             <div class="totals-grid">
                 <div class="total-card">
-                    <div class="total-label">Total Gastado</div>
-                    <div class="total-value currency">{{ total_gastado }}</div>
+                    <div class="total-label">Total Conversiones</div>
+                    <div class="total-value">{{ total_conversiones }}</div>
                 </div>
                 <div class="total-card">
-                    <div class="total-label">Total de Registros</div>
-                    <div class="total-value">{{ total_registros }}</div>
+                    <div class="total-label">Total en USD</div>
+                    <div class="total-value currency">{{ total_usd }}</div>
                 </div>
                 <div class="total-card">
-                    <div class="total-label">Fecha de Generación</div>
-                    <div class="total-value">{{ fecha_generacion }}</div>
+                    <div class="total-label">Total en RD$</div>
+                    <div class="total-value currency">{{ total_pesos }}</div>
+                </div>
+                <div class="total-card">
+                    <div class="total-label">Tasa Promedio</div>
+                    <div class="total-value">{{ tasa_promedio }}</div>
                 </div>
             </div>
         </div>
@@ -581,7 +582,7 @@
                     Sistema de Gestión Financiera
                 </div>
                 <div>
-                    <br>
+                    Página 1 de 1<br>
                     Reporte generado automáticamente
                 </div>
                 <div>
@@ -591,22 +592,22 @@
             </div>
             <div class="footer-note">
                 Este es un documento confidencial generado por el sistema MLAN FINANCE. 
-                Cualquier uso no autorizado está prohibido.
+                Cualquier uso no autorizado está prohibido. Las tasas de cambio pueden variar.
             </div>
         </div>
     </div>
 
     <!-- Mensaje solo visible en pantalla -->
     <div class="screen-message screen-only">
-        <h3><i class="fas fa-file-alt"></i> Reporte Listo para Imprimir</h3>
-        <p>El reporte de gastos se ha generado correctamente. Haz clic en "Imprimir Reporte" para abrir el diálogo de impresión.</p>
+        <h3>📄 Reporte de Conversiones Listo</h3>
+        <p>El reporte de conversiones USD-RD$ se ha generado correctamente. Haz clic en "Imprimir Reporte" para abrir el diálogo de impresión.</p>
         
         <div class="screen-actions">
             <button class="screen-btn print" onclick="imprimirReporte()">
-                <i class="fas fa-print"></i> Imprimir Reporte
+                <span>🖨️</span> Imprimir Reporte
             </button>
             <button class="screen-btn back" onclick="volverAtras()">
-                <i class="fas fa-arrow-left"></i> Volver al Sistema
+                <span>←</span> Volver a Conversiones
             </button>
         </div>
         
@@ -634,7 +635,7 @@
             
             const despuesDeImprimir = () => {
                 if (imprimidoExitosamente) {
-                    // Redirigir después de un breve retraso para permitir que se cierre el diálogo
+                    // Redirigir después de un breve retraso
                     setTimeout(() => {
                         window.history.back();
                     }, 500);
@@ -665,10 +666,7 @@
 
         // Detectar si estamos en modo impresión al cargar
         document.addEventListener('DOMContentLoaded', function() {
-            // Si la página se carga directamente (no desde el botón de imprimir),
-            // no abrimos automáticamente el diálogo
-            
-            // Verificar si venimos de la página principal (podrías ajustar esta lógica)
+            // Verificar si venimos de la página principal
             const referrer = document.referrer;
             const esDesdeSistema = referrer.includes(window.location.hostname);
             

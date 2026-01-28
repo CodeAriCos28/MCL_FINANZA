@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Conversiones</title>
 
-    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo2.ico' %}?v=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo2.ico' %}">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Boxicons -->
@@ -2972,9 +2971,13 @@ function abrirModalNuevo() {
     modalTitle.innerHTML = '<i class="fas fa-plus-circle"></i> Nuevo Movimiento';
     form.reset();
     
-    // Establecer fecha actual en formato YYYY-MM-DD
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fecha').value = hoy;
+// ✅ CÓDIGO CORREGIDO
+// Establecer fecha actual en formato YYYY-MM-DD usando zona horaria local
+const hoy = new Date();
+const year = hoy.getFullYear();
+const month = String(hoy.getMonth() + 1).padStart(2, '0');
+const day = String(hoy.getDate()).padStart(2, '0');
+document.getElementById('fecha').value = `${year}-${month}-${day}`;
     
     // Limpiar preview de imagen
     imagePreview.style.display = 'none';

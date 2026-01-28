@@ -20,6 +20,7 @@ Including another URLconf
 # urlpatterns = [
 #     path('admin/', admin.site.urls),
 # ]
+from finanzas import views as finanza_views
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
@@ -38,3 +39,9 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+
+handler400 = "finanzas.views.error_400"
+handler403 = "finanzas.views.error_403"
+handler404 = "finanzas.views.error_404"
+handler500 = "finanzas.views.error_500"

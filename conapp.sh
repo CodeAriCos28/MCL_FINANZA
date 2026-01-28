@@ -21,9 +21,9 @@ python manage.py shell << EOF
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-username = ""
+username = "anyoli"
 email = ""
-password = ""
+password = "3788"
 
 user = User.objects.filter(username=username).first()
 

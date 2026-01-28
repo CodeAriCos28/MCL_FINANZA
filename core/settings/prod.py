@@ -7,16 +7,17 @@ from .base import * # =========================================================
 # =========================================================
 
 # 1. Desactivar el modo de depuración (¡CRUCIAL por seguridad!)
-DEBUG = False
+
 
 # 2. Hosts permitidos (Reemplaza con tus dominios reales)
-ALLOWED_HOSTS = ['midominio.com', 'www.midominio.com', 'mcl-finanza-1.onrender.com', '.vercel.app']
+# ALLOWED_HOSTS = ['midominio.com', 'www.midominio.com', 'mcl-finanza-1.onrender.com', '.vercel.app']
 
 # 3. Clave secreta (Ya la cargamos desde .env en base.py)
 
 # 4. Seguridad de la conexión (Recomendado para servidores)
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
+
 SECURE_SSL_REDIRECT = True
 # Más ajustes de seguridad como HSTS, etc.
 

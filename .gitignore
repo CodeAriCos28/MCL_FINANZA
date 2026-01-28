@@ -205,7 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-
+.vscode/
 
 *.sql
 settings.txt
+
+
+staticfiles/
+mediafiles/
+versel.json

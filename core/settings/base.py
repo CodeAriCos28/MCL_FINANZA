@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES .parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES NIVELES ARRIBA
 load_dotenv()
 
 # Quick-start development settings - unsuitable for production
@@ -25,18 +25,9 @@ load_dotenv()
 # SECRET_KEY = 'django-insecure-6amk(11q7n4-e3y13k!vb0@$6lo@5me-+bnjmofia&2zwf%9v%'
 SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-
-DEBUG = os.getenv("DEBUG", "False") == "True"
-# ALLOWED_HOSTS = []
-# settings.py
-
-# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'omega-neighbourless-sublabially.ngrok-free.dev', 'mcl-finanza-1.onrender.com', ' codearicos.pythonanywhere.com ']
-# ALLOWED_HOSTS = ['*']
-
-# CSRF_TRUSTED_ORIGINS = [
-    # 'https://*.ngrok-free.dev',  # Para permitir cualquier subdominio de ngrok-free.dev
-    # 'https://omega-neighbourless-sublabially.ngrok-free.dev' # La URL específica
-# ]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+DEBUG =  os.getenv("DEBUG", "False") == "True"
+# DEBUG  = False
 CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8003', 'http://localhost:8003']
 
 # Application definition
@@ -142,7 +133,6 @@ USE_TZ = True
 
 # Configuración de zona horaria para República Dominicana
 # TIME_ZONE = 'America/Santo_Domingo'
-# USE_TZ = True
 
 # Idioma por defecto
 LANGUAGE_CODE = 'en-us'
@@ -184,13 +174,15 @@ SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static", # Esto apunta a la carpeta 'static' en la raíz
+]
 
 # Directorio donde Django almacenará los arachivos subidos (ej. comprobantes)
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
 
 # Default primary key field type
@@ -236,7 +228,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #         },
 #     }
 # }
-import os
 
 # DEBUG = os.getenv("DEBUG", "False") == "True"
 

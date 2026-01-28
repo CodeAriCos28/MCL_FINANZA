@@ -2,7 +2,7 @@
 # 1. IMPORTS DE LA BIBLIOTECA ESTÁNDAR (Standard Library)
 # ----------------------------------------------------------------------
 import os, calendar, pytz, json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, timedelta
 
 # ----------------------------------------------------------------------
@@ -153,11 +153,21 @@ def convertidor_index(request):
 # =============================================================================
 # REGISTRAR MOVIMIENTO - CON MANEJO DE IMÁGENES
 # =============================================================================
+from django.db import transaction
+from django.views.decorators.cache import never_cache
+from django.http import JsonResponse
+from decimal import Decimal
+from django.utils import timezone
+from datetime import datetime
+import pytz
+
+
 @transaction.atomic
 @never_cache
 def convertidor_registrar(request):
     """
     Maneja el registro de nuevos movimientos de conversión - VERSIÓN CORREGIDA
+    Con manejo correcto de zona horaria para República Dominicana
     """
     if request.method == 'POST':
         try:
@@ -167,9 +177,9 @@ def convertidor_registrar(request):
             descripcion = request.POST.get('descripcion', '').strip()
             fecha = request.POST.get('fecha')
             imagen = request.FILES.get('imagen')  # Obtener la imagen
-
-            print(f"Datos recibidos - USD: {monto_usd}, Tasa: {tasa_cambio}, Imagen: {imagen}")
-
+            
+            print(f"Datos recibidos - USD: {monto_usd}, Tasa: {tasa_cambio}, Fecha: {fecha}, Imagen: {imagen}")
+            
             # Validaciones básicas
             if not monto_usd:
                 return JsonResponse({
@@ -182,10 +192,9 @@ def convertidor_registrar(request):
                     'success': False,
                     'error': 'Tasa de Cambio es obligatoria'
                 })
-
+            
             # Convertir a decimal de forma segura
             try:
-                from decimal import Decimal
                 monto_usd_decimal = Decimal(str(monto_usd).replace(',', '.'))
                 tasa_cambio_decimal = Decimal(str(tasa_cambio).replace(',', '.'))
             except Exception as e:
@@ -193,7 +202,7 @@ def convertidor_registrar(request):
                     'success': False,
                     'error': f'Error en formato de números: {str(e)}'
                 })
-
+            
             # Crear nuevo movimiento
             movimiento = MovimientoEntrada(
                 monto_usd=monto_usd_decimal,
@@ -205,11 +214,21 @@ def convertidor_registrar(request):
             # Si se proporcionó fecha específica
             if fecha:
                 try:
-                    from django.utils import timezone
-                    from datetime import datetime
                     # Parsear fecha de forma segura
                     fecha_dt = datetime.strptime(fecha, '%Y-%m-%d')
-                    movimiento.fecha = timezone.make_aware(fecha_dt)
+                    
+                    # Configurar zona horaria de República Dominicana (AST, UTC-4)
+                    tz_rd = pytz.timezone('America/Santo_Domingo')
+                    
+                    # SOLUCIÓN: Establecer la hora a mediodía (12:00 PM) en la zona horaria local
+                    # Esto evita el problema del desfase de 4 horas
+                    fecha_dt = fecha_dt.replace(hour=12, minute=0, second=0, microsecond=0)
+                    
+                    # Localizar la fecha en la zona horaria de República Dominicana
+                    movimiento.fecha = tz_rd.localize(fecha_dt)
+                    
+                    print(f"Fecha procesada correctamente: {movimiento.fecha}")
+                    
                 except ValueError as e:
                     return JsonResponse({
                         'success': False,
@@ -242,6 +261,7 @@ def convertidor_registrar(request):
         'success': False,
         'error': 'Método no permitido. Se requiere POST.'
     })
+
 # =============================================================================
 # HISTORIAL COMPLETO DEL CONVERTIDOR
 # =============================================================================
@@ -853,7 +873,6 @@ def convertidor_reporte_pdf(request):
     response.write(pdf)
     
     return response
-
 # =============================================================================
 # REPORTE PDF - DETALLE DE MOVIMIENTO (CORREGIDO)  DEL  CONVERTIDOR
 # =============================================================================
@@ -1222,417 +1241,144 @@ def convertidor_reporte_detalle_pdf(request, id):
 @never_cache
 def convertidor_imprimir_todo(request):
     """
-    Genera versión optimizada para impresión del historial completo
+    Vista para imprimir todo el historial de conversiones (MovimientoEntrada)
     """
+    # Obtener filtros del request
+    fecha_inicio = request.GET.get('fecha_inicio', '')
+    fecha_fin = request.GET.get('fecha_fin', '')
+    descripcion = request.GET.get('descripcion', '')
+    monto_min_usd = request.GET.get('monto_min', '')
+    
+    # Filtrar movimientos de entrada
+    conversiones = MovimientoEntrada.objects.all()
+    
     # Aplicar filtros
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    descripcion = request.GET.get('descripcion')
-    monto_min = request.GET.get('monto_min')
-    
-    movimientos = MovimientoEntrada.objects.all()
-    
     if fecha_inicio:
-        movimientos = movimientos.filter(fecha__date__gte=fecha_inicio)
-    if fecha_fin:
-        movimientos = movimientos.filter(fecha__date__lte=fecha_fin)
-    if descripcion:
-        movimientos = movimientos.filter(descripcion__icontains=descripcion)
-    if monto_min:
-        movimientos = movimientos.filter(monto_usd__gte=monto_min)
+        try:
+            # Convertir a datetime para comparación
+            fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+            conversiones = conversiones.filter(fecha__gte=fecha_inicio_dt)
+        except ValueError:
+            pass
     
-    movimientos = movimientos.order_by('-fecha')
+    if fecha_fin:
+        try:
+            # Convertir a datetime y agregar un día para incluir todo el día
+            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d') + timedelta(days=1)
+            conversiones = conversiones.filter(fecha__lt=fecha_fin_dt)
+        except ValueError:
+            pass
+    
+    if descripcion:
+        conversiones = conversiones.filter(descripcion__icontains=descripcion)
+    
+    if monto_min_usd:
+        try:
+            monto_min_decimal = Decimal(monto_min_usd)
+            conversiones = conversiones.filter(monto_usd__gte=monto_min_decimal)
+        except (ValueError, InvalidOperation):
+            pass
+    
+    # Ordenar por fecha descendente (más reciente primero)
+    conversiones = conversiones.order_by('-fecha')
+    
+    # Obtener la fecha de la primera y última conversión
+    primera_fecha = None
+    ultima_fecha = None
+    
+    if conversiones.exists():
+        # Obtener la fecha más antigua
+        try:
+            primera_fecha_conv = conversiones.last()  # Última en orden ascendente
+            primera_fecha = primera_fecha_conv.fecha_display
+        except Exception:
+            pass
+        
+        # Obtener la fecha más reciente
+        try:
+            ultima_fecha_conv = conversiones.first()  # Primera en orden descendente
+            ultima_fecha = ultima_fecha_conv.fecha_display
+        except Exception:
+            pass
+    
+    # Preparar datos para el template
+    conversiones_data = []
+    for idx, conversion in enumerate(conversiones, 1):
+        # Usar monto_pesos ya calculado en el modelo
+        monto_pesos = conversion.monto_pesos
+        
+        conversiones_data.append({
+            'numero': idx,
+            'fecha': conversion.fecha_display,
+            'fecha_completa': conversion.fecha_completa_rd,
+            'monto_usd': f"${conversion.monto_usd:,.2f}",
+            'tasa_cambio': f"{conversion.tasa_cambio:,.2f}",
+            'monto_pesos': f"RD$ {monto_pesos:,.2f}",
+            'descripcion': conversion.descripcion or 'Sin descripción',
+            'descripcion_corta': conversion.descripcion_corta,
+            'tiene_imagen': bool(conversion.imagen),
+            'mostrar_ver_mas': conversion.mostrar_ver_mas,
+        })
     
     # Calcular totales
-    total_movimientos = movimientos.count()
-    total_usd = movimientos.aggregate(total=Sum('monto_usd'))['total'] or 0
-    total_pesos = movimientos.aggregate(total=Sum('monto_pesos'))['total'] or 0
+    total_conversiones = conversiones.count()
     
-    # Formatear fechas para mostrar
-    fecha_inicio_str = fecha_inicio if fecha_inicio else "No especificada"
-    fecha_fin_str = fecha_fin if fecha_fin else "No especificada"
+    total_usd_result = conversiones.aggregate(
+        total=Sum('monto_usd')
+    )
+    total_usd = total_usd_result['total'] or Decimal('0.00')
     
-    # Si hay fechas, convertirlas al formato correcto (de YYYY-MM-DD a DD/MM/YYYY)
-    if fecha_inicio:
+    total_pesos_result = conversiones.aggregate(
+        total=Sum('monto_pesos')
+    )
+    total_pesos = total_pesos_result['total'] or Decimal('0.00')
+    
+    # Calcular tasa promedio ponderada
+    tasa_promedio = "N/A"
+    if total_usd > 0:
         try:
-            fecha_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d')
-            fecha_inicio_str = fecha_obj.strftime('%d/%m/%Y')
-        except:
-            pass
+            tasa_promedio = f"{total_pesos / total_usd:,.2f}"
+        except (ZeroDivisionError, InvalidOperation):
+            tasa_promedio = "N/A"
     
-    if fecha_fin:
-        try:
-            fecha_obj = datetime.strptime(fecha_fin, '%Y-%m-%d')
-            fecha_fin_str = fecha_obj.strftime('%d/%m/%Y')
-        except:
-            pass
+    # Si no hay filtros de fecha, usar las fechas del primer y último registro
+    fecha_inicio_mostrar = fecha_inicio if fecha_inicio else primera_fecha
+    fecha_fin_mostrar = fecha_fin if fecha_fin else ultima_fecha
     
-    # Crear buffer para el PDF
-    buffer = BytesIO()
-    
-    # Crear documento en modo portrait (A4 vertical)
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=1.5*cm,
-        leftMargin=1.5*cm,
-        topMargin=1.2*cm,  # Reducido para que el logo esté más arriba
-        bottomMargin=1.5*cm,
-        title="Impresión de Conversiones de Divisas"
-    )
-    
-    # Estilos personalizados
-    styles = getSampleStyleSheet()
-    
-    # Título principal - Estilo similar al reporte de la imagen
-    title_style = ParagraphStyle(
-        'ReportTitle',
-        parent=styles['Title'],
-        fontSize=16,
-        textColor=colors.black,
-        spaceAfter=12,
-        alignment=1,  # Centrado
-        fontName='Helvetica-Bold',
-        leading=18
-    )
-    
-    # Estilo para encabezados de sección
-    section_style = ParagraphStyle(
-        'SectionStyle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        textColor=colors.black,
-        spaceAfter=8,
-        fontName='Helvetica-Bold',
-        alignment=0,  # Izquierda
-        leading=14,
-        leftIndent=0
-    )
-    
-    # Estilo para información normal
-    normal_style = ParagraphStyle(
-        'NormalStyle',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.black,
-        spaceAfter=4,
-        alignment=0,
-        leading=12
-    )
-    
-    # Estilo para tabla
-    table_header_style = ParagraphStyle(
-        'TableHeader',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.black,
-        fontName='Helvetica-Bold',
-        alignment=1,  # Centrado
-        leading=10
-    )
-    
-    table_cell_style = ParagraphStyle(
-        'TableCell',
-        parent=styles['Normal'],
-        fontSize=9,
-        alignment=1,  # Centrado
-        leading=10
-    )
-    
-    table_cell_left_style = ParagraphStyle(
-        'TableCellLeft',
-        parent=styles['Normal'],
-        fontSize=9,
-        alignment=0,  # Izquierda
-        leading=10
-    )
-    
-    # Elementos del documento
-    elements = []
-    
-    # Crear una tabla de encabezado con logo a la izquierda y título a la derecha
-    header_table_data = []
-    
-    # Intentar cargar el logo de la empresa - logo más arriba y a la izquierda
+    # Formatear fechas para mostrar si están en formato YYYY-MM-DD
     try:
-        # Ruta del logo - ajusta según tu proyecto
-        # Intenta varias rutas posibles
-        logo_paths = ["static/img/logo.png"]
-        
-        logo = None
-        for path in logo_paths:
-            try:
-                logo = Image(path, width=2.8*cm, height=2.8*cm)  # Tamaño ligeramente reducido
-                break
-            except:
-                continue
-        
-        if logo:
-            logo_cell = logo
-        else:
-            raise Exception("Logo no encontrado")
-            
-    except Exception as e:
-        # Si no se puede cargar el logo, usar texto alternativo
-        logo_cell = Paragraph("LOGO EMPRESA", ParagraphStyle(
-            'LogoPlaceholder',
-            parent=styles['Normal'],
-            fontSize=10,
-            textColor=colors.gray,
-            alignment=1,
-            fontName='Helvetica-Bold'
-        ))
+        if fecha_inicio_mostrar and '-' in fecha_inicio_mostrar:
+            fecha_obj = datetime.strptime(fecha_inicio_mostrar, '%Y-%m-%d')
+            fecha_inicio_mostrar = fecha_obj.strftime('%d/%m/%Y')
+    except ValueError:
+        pass
     
-    # Crear celda con los títulos
-    titles_cell = [
-        Paragraph("MLAN FINANCE Sistema de Reportes Financieros", title_style),
-        Spacer(1, 4),
-        Paragraph("REPORTE PARA IMPRESIÓN", 
-                  ParagraphStyle(
-                      'SubtitleStyle',
-                      parent=styles['Title'],
-                      fontSize=14,
-                      textColor=colors.black,
-                      spaceAfter=0,
-                      alignment=1,
-                      fontName='Helvetica-Bold',
-                      leading=16
-                  ))
-    ]
+    try:
+        if fecha_fin_mostrar and '-' in fecha_fin_mostrar:
+            fecha_obj = datetime.strptime(fecha_fin_mostrar, '%Y-%m-%d')
+            fecha_fin_mostrar = fecha_obj.strftime('%d/%m/%Y')
+    except ValueError:
+        pass
     
-    # Crear la fila de la tabla: logo a la izquierda, títulos a la derecha
-    header_table_data.append([logo_cell, titles_cell])
+    context = {
+        'conversiones': conversiones_data,
+        'total_conversiones': total_conversiones,
+        'total_usd': f"${total_usd:,.2f}",
+        'total_pesos': f"RD$ {total_pesos:,.2f}",
+        'fecha_generacion': datetime.now().strftime('%d/%m/%Y %I:%M %p'),
+        'filtros': {
+            'fecha_inicio': fecha_inicio_mostrar,
+            'fecha_fin': fecha_fin_mostrar,
+            'descripcion': descripcion,
+            'monto_min': monto_min_usd,
+        },
+        'primera_fecha': primera_fecha,
+        'ultima_fecha': ultima_fecha,
+        'tasa_promedio': tasa_promedio,
+    }
     
-    # Crear la tabla de encabezado - ajustada para que el logo esté más arriba
-    header_table = Table(header_table_data, colWidths=[3.5*cm, 11.5*cm])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-        ('TOPPADDING', (0, 0), (0, 0), -5),  # Negativo para subir el logo
-        ('TOPPADDING', (1, 0), (1, 0), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-    ]))
-    
-    elements.append(header_table)
-    elements.append(Spacer(1, 8))  # Menos espacio después del encabezado
-    
-    # Fecha del reporte
-    fecha_table_data = [
-        ["Fecha del Reporte:", datetime.now().strftime('%d/%m/%Y %I:%M')]
-    ]
-    
-    fecha_table = Table(fecha_table_data, colWidths=[4*cm, 11*cm])
-    fecha_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),  # Reducido
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),  # Reducido
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('PADDING', (0, 0), (-1, -1), (4, 6)),
-    ]))
-    
-    elements.append(fecha_table)
-    elements.append(Spacer(1, 12))  # Menos espacio
-    
-    # DATOS DEL REPORTE
-    elements.append(Paragraph("DATOS DEL REPORTE", section_style))
-    elements.append(Spacer(1, 4))  # Menos espacio
-    
-    # Construir datos del reporte dinámicamente
-    datos_reporte = []
-    datos_reporte.append(["Usuario Encargado:", request.user.get_full_name() or request.user.username])
-    datos_reporte.append(["Total de registros:", str(total_movimientos)])
-    
-    # Solo agregar filtros si se aplicaron
-    if fecha_inicio or fecha_fin:
-        datos_reporte.append(["Período del reporte:", f"Del {fecha_inicio_str} al {fecha_fin_str}"])
-    
-    if descripcion:
-        datos_reporte.append(["Descripción filtrada:", descripcion])
-    
-    if monto_min:
-        datos_reporte.append(["Monto mínimo (USD):", f"${monto_min}"])
-    
-    # Agregar información de totales
-    datos_reporte.append(["Total USD:", f"$ {total_usd:,.2f}"])
-    datos_reporte.append(["Total Pesos:", f"$ {total_pesos:,.2f}"])
-    
-    datos_table = Table(datos_reporte, colWidths=[5*cm, 10*cm])
-    datos_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('PADDING', (0, 0), (-1, -1), (4, 6)),
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-    ]))
-    
-    elements.append(datos_table)
-    elements.append(Spacer(1, 12))  # Menos espacio
-    
-    # DETALLE DE CONVERSIONES
-    if movimientos.exists():
-        elements.append(Paragraph("DETALLE DE CONVERSIONES", section_style))
-        elements.append(Spacer(1, 4))  # Menos espacio
-        
-        # Preparar datos de la tabla
-        table_data = []
-        
-        # Encabezados - similar al reporte de la imagen
-        headers = [
-            Paragraph("Nº", table_header_style),
-            Paragraph("FECHA", table_header_style),
-            Paragraph("DESCRIPCIÓN", table_header_style),
-            Paragraph("USD", table_header_style),
-            Paragraph("TASA", table_header_style),
-            Paragraph("PESOS", table_header_style),
-            Paragraph("ESTADO", table_header_style)
-        ]
-        table_data.append(headers)
-        
-        # Agregar filas de datos
-        for idx, mov in enumerate(movimientos, 1):
-            # Formatear fecha usando el método del modelo
-            fecha_formateada = mov.fecha_formateada if hasattr(mov, 'fecha_formateada') else mov.fecha.strftime('%d/%m/%Y')
-            
-            descripcion_text = mov.descripcion or 'Sin descripción'
-            if len(descripcion_text) > 25:
-                descripcion_text = descripcion_text[:22] + "..."
-            
-            row = [
-                Paragraph(str(idx), table_cell_style),
-                Paragraph(fecha_formateada, table_cell_style),
-                Paragraph(descripcion_text, table_cell_left_style),
-                Paragraph(f"$ {mov.monto_usd:,.2f}", table_cell_style),
-                Paragraph(f"$ {mov.tasa_cambio:,.2f}", table_cell_style),
-                Paragraph(f"$ {mov.monto_pesos:,.2f}", table_cell_style),
-                Paragraph("Completado", table_cell_style)
-            ]
-            table_data.append(row)
-        
-        # Anchos de columna
-        col_widths = [1.2*cm, 2.5*cm, 4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm]
-        table = Table(table_data, colWidths=col_widths, repeatRows=1)
-        
-        # Estilos de la tabla - similar al reporte de la imagen
-        table_style = TableStyle([
-            # Encabezado
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f0f0f0')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            
-            # Bordes - similares al reporte de la imagen
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BOX', (0, 0), (-1, -1), 1, colors.black),
-            
-            # Alineación
-            ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-            ('ALIGN', (1, 1), (1, -1), 'CENTER'),
-            ('ALIGN', (2, 1), (2, -1), 'LEFT'),
-            ('ALIGN', (3, 1), (5, -1), 'RIGHT'),
-            ('ALIGN', (6, 1), (6, -1), 'CENTER'),
-            
-            # Padding
-            ('PADDING', (0, 0), (-1, -1), (4, 4)),
-            
-            # Filas alternas
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ])
-        
-        # Alternar colores de fila
-        for i in range(1, len(table_data)):
-            if i % 2 == 0:
-                table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8f8f8'))
-        
-        table.setStyle(table_style)
-        elements.append(table)
-    else:
-        # Mensaje cuando no hay datos
-        no_data_style = ParagraphStyle(
-            'NoData',
-            parent=styles['Normal'],
-            fontSize=12,
-            textColor=colors.black,
-            spaceAfter=15,
-            alignment=1,
-            fontName='Helvetica-Bold',
-            leading=14
-        )
-        elements.append(Spacer(1, 20))
-        elements.append(Paragraph("NO SE ENCONTRARON MOVIMIENTOS", no_data_style))
-        elements.append(Spacer(1, 15))
-    
-    elements.append(Spacer(1, 15))  # Menos espacio
-    
-    # OBSERVACIONES
-    elements.append(Paragraph("OBSERVACIONES", section_style))
-    elements.append(Spacer(1, 4))  # Menos espacio
-    
-    # Crear observaciones dinámicas
-    observaciones_text = "Reporte generado automáticamente por el sistema. "
-    if total_movimientos > 0:
-        observaciones_text += f"Se encontraron {total_movimientos} conversiones. "
-        observaciones_text += f"Total convertido: ${total_usd:,.2f} USD → ${total_pesos:,.2f} DOP. "
-    
-    if fecha_inicio or fecha_fin:
-        observaciones_text += f"Período del reporte: {fecha_inicio_str} al {fecha_fin_str}. "
-    
-    observaciones_style = ParagraphStyle(
-        'Observaciones',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.black,
-        spaceAfter=8,
-        alignment=0,
-        leading=12,
-        leftIndent=0,
-        borderWidth=1,
-        borderColor=colors.black,
-        padding=6
-    )
-    
-    elements.append(Paragraph(observaciones_text, observaciones_style))
-    elements.append(Spacer(1, 15))  # Menos espacio
-    
-    # Información del sistema (pie de página)
-    footer_style = ParagraphStyle(
-        'FooterStyle',
-        parent=styles['Normal'],
-        fontSize=8,
-        textColor=colors.HexColor('#666666'),
-        spaceAfter=0,
-        alignment=1,
-        leading=10
-    )
-    
-    elements.append(Spacer(1, 8))  # Menos espacio
-    elements.append(Paragraph(f"Sistema de Conversión de Divisas MLAN FINANCE | Generado el{datetime.now().strftime('%d/%m/%Y %I:%M')}", footer_style))
-    elements.append(Paragraph("Este reporte constituye documentación oficial del sistema", footer_style))
-    
-    # Construir el PDF
-    doc.build(elements)
-    
-    # Obtener el valor del buffer
-    pdf = buffer.getvalue()
-    buffer.close()
-    
-    # Crear respuesta HTTP
-    response = HttpResponse(content_type='application/pdf')
-    # Para impresión, usar 'inline' para que se abra directamente en el navegador
-    response['Content-Disposition'] = f'inline; filename="impresion_conversiones_{datetime.now().strftime("%d/%m/%Y_%I:%M:%S")}.pdf"'
-    response.write(pdf)
-    
-    return response
+    return render(request, 'finanzas/convertidor_print.html', context)
+
 # =============================================================================
 # APIs PARA JAVASCRIPT  DEL  CONVERTIDOR
 # =============================================================================
@@ -6651,3 +6397,19 @@ def dashboard_imprimir_historial(request):
     }
     
     return render(request, 'finanzas/dashboard_print.html', context)
+
+
+def error_400(request, exception):
+    return render(request, "errors/400.html", status=400)
+
+
+def error_403(request, exception):
+    return render(request, "errors/403.html", status=403)
+
+
+def error_404(request, exception):
+    return render(request, "errors/404.html", status=404)
+
+
+def error_500(request):
+    return render(request, "errors/500.html", status=500)
