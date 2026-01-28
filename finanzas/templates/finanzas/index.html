@@ -1,0 +1,460 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLAN FINANCE - Acceso</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/logo2.ico' %}">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    
+    <style>
+       
+        /* --- ESTILOS CSS (MODIFICADO PARA IMAGEN DE LOGO) --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Fondo con imagen financiera y overlay elegante */
+            background: linear-gradient(135deg, rgba(13, 36, 56, 0.85) 0%, rgba(22, 49, 82, 0.8) 50%, rgba(30, 64, 107, 0.75) 100%),
+                        url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1911&q=80') center/cover no-repeat fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: auto;
+            position: relative;
+            color: #f8f9fa;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(184, 134, 11, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(32, 201, 151, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(66, 133, 244, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-container {
+            /* Gradiente elegante azul oscuro con toques dorados */
+            background: linear-gradient(135deg, rgba(13, 36, 56, 0.95) 0%, rgba(22, 49, 82, 0.92) 50%, rgba(30, 64, 107, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid rgba(184, 134, 11, 0.3);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 
+                        0 0 50px rgba(184, 134, 11, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            margin: auto;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* Efecto de brillo dorado en la tarjeta */
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(184, 134, 11, 0.6), transparent);
+        }
+
+        .login-container::after {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: -100%;
+            width: 300%;
+            height: 300%;
+            background: radial-gradient(circle, rgba(184, 134, 11, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            animation: shimmer 8s infinite linear;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(100%, 100%) rotate(360deg); }
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Logo con imagen - MODIFICADO para imagen más grande */
+        .logo-icon {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 15px 40px rgba(184, 134, 11, 0.4),
+                        0 0 30px rgba(184, 134, 11, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            position: relative;
+            border: 2px solid rgba(184, 134, 11, 0.4);
+            background: rgba(255, 255, 255, 0.05); /* Fondo sutil para logo */
+        }
+
+        /* Imagen del logo - AHORA MÁS GRANDE */
+        .logo-img {
+            width: 90%; /* Aumentado de 100% para que no toque los bordes */
+            height: 90%; /* Aumentado de 100% para que no toque los bordes */
+            object-fit: contain; /* Mantiene proporciones de la imagen */
+            min-width: 90%; /* Asegura que ocupe al menos el 90% */
+            min-height: 90%; /* Asegura que ocupe al menos el 90% */
+        }
+
+        /* Título con gradiente dorado */
+        .logo-title {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #d4af37 0%, #ffd700 50%, #f0e68c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 50px 16px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(13, 36, 56, 0.7);
+            color: #f8f9fa;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Focus con borde dorado */
+        .form-input:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2),
+                        0 5px 20px rgba(0, 0, 0, 0.3);
+            background: rgba(22, 49, 82, 0.8);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #d4af37;
+            font-size: 1.4rem;
+            z-index: 2;
+        }
+
+        /* Botón con gradiente dorado elegante */
+        .login-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #b8860b 0%, #d4af37 50%, #ffd700 100%);
+            color: #0d2438;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            box-shadow: 0 10px 30px rgba(184, 134, 11, 0.4),
+                        0 0 20px rgba(184, 134, 11, 0.2);
+            position: relative;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        .login-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(184, 134, 11, 0.5),
+                        0 0 30px rgba(184, 134, 11, 0.3);
+        }
+
+        .login-button:hover::before {
+            left: 100%;
+        }
+
+        .login-button:active {
+            transform: translateY(-1px);
+        }
+
+        .forgot-link {
+            text-align: center;
+            margin-top: 25px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Enlaces con color dorado suave */
+        .forgot-link a {
+            color: #d4af37;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .forgot-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: #d4af37;
+            transition: width 0.3s ease;
+        }
+
+        .forgot-link a:hover {
+            color: #ffd700;
+        }
+
+        .forgot-link a:hover::after {
+            width: 100%;
+        }
+
+        /* RESPONSIVE DESIGN (ACTUALIZADO PARA IMAGEN) */
+        @media (max-width: 1024px) {
+            .login-container { max-width: 440px; padding: 40px 35px; }
+            .logo-icon { width: 100px; height: 100px; }
+        }
+        @media (max-width: 767px) {
+            body { padding: 15px; }
+            .login-container { max-width: 400px; padding: 35px 30px; border-radius: 20px; }
+            .logo-icon { width: 90px; height: 90px; margin-bottom: 18px; }
+            .logo-title { font-size: 2rem; }
+            .logo-subtitle { font-size: 0.9rem; }
+            .form-input { padding: 14px 45px 14px 18px; font-size: 0.95rem; }
+            .login-button { padding: 16px; font-size: 1.05rem; }
+        }
+        @media (max-width: 575px) {
+            body { padding: 15px; }
+            .login-container { max-width: 380px; padding: 30px 25px; border-radius: 18px; }
+            .logo-icon { width: 85px; height: 85px; }
+            .logo-title { font-size: 1.9rem; }
+            .form-input { padding: 13px 42px 13px 16px; font-size: 0.9rem; }
+            .login-button { padding: 15px; font-size: 1rem; }
+        }
+        @media (max-width: 479px) {
+            body { padding: 10px; }
+            .login-container { max-width: 340px; padding: 25px 20px; border-radius: 16px; }
+            .logo-section { margin-bottom: 30px; }
+            .logo-icon { width: 80px; height: 80px; margin-bottom: 15px; }
+            .logo-title { font-size: 1.7rem; }
+            .logo-subtitle { font-size: 0.85rem; }
+            .form-group { margin-bottom: 20px; }
+            .form-label { font-size: 0.95rem; margin-bottom: 8px; }
+            .form-input { padding: 12px 40px 12px 15px; font-size: 0.9rem; border-radius: 10px; }
+            .input-icon { font-size: 1.3rem; right: 15px; }
+            .login-button { padding: 14px; font-size: 0.95rem; border-radius: 10px; }
+            .forgot-link { margin-top: 20px; }
+            .forgot-link a { font-size: 0.9rem; }
+        }
+        @media (max-height: 600px) and (orientation: landscape) {
+            body { padding: 15px; }
+            .login-container { max-width: 520px; padding: 25px 30px; }
+            .logo-section { margin-bottom: 20px; }
+            .logo-icon { width: 70px; height: 70px; margin-bottom: 10px; }
+            .logo-title { font-size: 1.6rem; margin-bottom: 5px; }
+            .logo-subtitle { font-size: 0.8rem; }
+            .form-group { margin-bottom: 15px; }
+            .form-input { padding: 12px 40px 12px 15px; font-size: 0.9rem; }
+            .login-button { padding: 14px; font-size: 0.95rem; }
+            .forgot-link { margin-top: 15px; }
+        }
+        @media (max-height: 450px) and (orientation: landscape) {
+            .login-container { max-width: 580px; padding: 20px 25px; }
+            .logo-icon { width: 60px; height: 60px; margin-bottom: 8px; }
+            .logo-title { font-size: 1.4rem; }
+            .logo-subtitle { font-size: 0.75rem; }
+            .form-group { margin-bottom: 12px; }
+            .form-input { padding: 10px 38px 10px 12px; font-size: 0.85rem; }
+            .login-button { padding: 12px; font-size: 0.9rem; }
+        }
+    
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <!-- Reemplazar "logo.png" con la ruta real del logo de tu empresa -->
+                <img src="/static/img/logo3.png" alt="MLAN FINANCE Logo" class="logo-img">
+            </div>
+            <h1 class="logo-title">DEREJ FINANCE</h1>
+            <p class="logo-subtitle">SISTEMA FINANCIERO INTEGRAL</p>
+        </div>
+
+        <!-- FORMULARIO -->
+        <form method="POST" action="{% url 'login' %}" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username" class="form-label">Usuario</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" class="form-input" 
+                        placeholder="Ingrese su usuario"
+                        required
+                    >
+                    <i class='bx bx-user-circle input-icon'></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Contraseña</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" class="form-input" 
+                        placeholder="Ingrese su contraseña"
+                        required
+                    >
+                    <i class='bx bx-lock-alt input-icon'></i>
+                </div>
+            </div>
+
+            <button type="submit" class="login-button">
+                Acceder al Sistema
+            </button>
+        </form>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    
+    <script>
+        // Animación de entrada
+        window.addEventListener('load', () => {
+            const container = document.querySelector('.login-container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.8s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+
+        // 🚨 LÓGICA DE MENSAJES DE DJANGO CON TOASTR 🚨
+        $(document).ready(function() {
+            // Configuración global de Toastr
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-center ",
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+
+            // Mostrar mensajes de Django
+            try {
+                const djangoMessages = JSON.parse('{{ django_messages_json|escapejs }}');
+                djangoMessages.forEach(message => {
+                    if (message.tags === 'success') {
+                        toastr.success(message.text, '¡Acceso Exitoso!');
+                    } else if (message.tags === 'error') {
+                        toastr.error(message.text, 'Error');
+                    } else if (message.tags === 'warning') {
+                        toastr.warning(message.text, 'Advertencia');
+                    } else if (message.tags === 'info') {
+                        toastr.info(message.text, 'Información');
+                    } else {
+                        toastr.info(message.text, 'Mensaje');
+                    }
+                });
+            } catch (error) {
+                console.error('Error procesando mensajes Django:', error);
+            }
+        });
+    </script>
+</body>
+</html>
