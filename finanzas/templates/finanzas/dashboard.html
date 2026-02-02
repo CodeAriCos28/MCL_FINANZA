@@ -10,9 +10,10 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-       /* ============================================================================
-   RESET COMPLETO Y CONFIGURACIÓN BASE
-   ============================================================================ */
+
+/* ============================================================================
+RESET COMPLETO Y CONFIGURACIÓN BASE
+============================================================================ */
 * {
     margin: 0;
     padding: 0;
@@ -2986,7 +2987,7 @@ function updateMoneyFlowChart() {
         options: getChartOptions('Movilidad del Dinero (Últimos 30 días)')
     });
 }
-
+// CORREGIDO: Función para actualizar gráfico de distribución
 function updateDistributionChart() {
     const ctx = document.getElementById('distributionChart')?.getContext('2d');
     if (!ctx) return;
@@ -3033,7 +3034,7 @@ function updateDistributionChart() {
         }
     });
 }
-
+// CORREGIDO: Función para actualizar gráfico de distribución
 function updateMonthlyChart() {
     const ctx = document.getElementById('monthlyChart')?.getContext('2d');
     if (!ctx) return;
@@ -3226,7 +3227,7 @@ function formatMonthForChart(monthString) {
         return monthString;
     }
 }
-
+// Genera una paleta de colores para los gráficos
 function generateChartColors(count, opacity = 0.7) {
     const baseColors = [
         'rgba(66, 165, 245, OPACITY)',
@@ -3243,6 +3244,8 @@ function generateChartColors(count, opacity = 0.7) {
     );
 }
 
+
+// CORREGIDO: Función para mostrar mensaje cuando no hay datos en el gráfico
 function showNoDataMessage(canvasId, message) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
@@ -3255,7 +3258,7 @@ function showNoDataMessage(canvasId, message) {
     ctx.textAlign = 'center';
     ctx.fillText(message, canvas.width / 2, canvas.height / 2);
 }
-
+// Configuración común para los gráficos
 function getChartOptions(title = '') {
     const isMobile = window.innerWidth < 768;
     
@@ -3316,7 +3319,7 @@ function getChartOptions(title = '') {
         }
     };
 }
-
+// Función para obtener el gráfico por su ID
 function getChartById(chartId) {
     const charts = {
         'categoryChart': categoryChart,
@@ -3360,7 +3363,7 @@ function updateTable() {
     
     console.log(`Tabla actualizada con ${allMovements.length} movimientos`);
 }
-
+// CORREGIDO: Función para combinar y ordenar todos los movimientos para la tabla
 function getAllMovementsForTable() {
     const movements = [];
     
@@ -3499,7 +3502,7 @@ function createTableRow(movement, index) {
     
     return row;
 }
-
+//  CORREGIDO: Función para crear botón "Ver más" en descripciones largas
 function crearBotonVerMas(descripcion, maxLength = 30) {
     if (!descripcion || descripcion.length <= maxLength) {
         return descripcion || 'Sin descripción';
@@ -3517,14 +3520,14 @@ function crearBotonVerMas(descripcion, maxLength = 30) {
         </div>
     `;
 }
-
+// CORREGIDO: Función para recortar texto con seguridad
 function recortarTexto(texto, maxLength) {
     if (!texto) return '';
     if (texto.length <= maxLength) return texto;
     
     return texto.substring(0, maxLength) + '...';
 }
-
+// CORREGIDO: Función para mostrar la descripción completa en un modal
 function showEmptyState() {
     const emptyState = document.getElementById('emptyState');
     const movementsTable = document.getElementById('movementsTable');
@@ -3532,7 +3535,7 @@ function showEmptyState() {
     if (emptyState) emptyState.style.display = 'block';
     if (movementsTable) movementsTable.style.display = 'none';
 }
-
+// CORREGIDO: Función para mostrar estado vacío
 function hideEmptyState() {
     const emptyState = document.getElementById('emptyState');
     const movementsTable = document.getElementById('movementsTable');
@@ -3550,7 +3553,7 @@ function formatCurrency(amount) {
         maximumFractionDigits: 2 
     })}`;
 }
-
+// CORREGIDO: Función para obtener la etiqueta y clase del badge según el tipo
 function getTypeBadge(type) {
     const badges = {
         'income': { text: 'Entrada', class: 'badge-income' },
@@ -3560,7 +3563,7 @@ function getTypeBadge(type) {
     
     return badges[type] || { text: type, class: 'badge-category' };
 }
-
+// CORREGIDO: Función para obtener la etiqueta de categoría
 function getCategoryLabel(category) {
     const labels = {
         'ALIMENTACION': 'Alimentación',
@@ -3573,7 +3576,7 @@ function getCategoryLabel(category) {
     
     return labels[category] || category;
 }
-
+// CORREGIDO: Función para obtener la etiqueta de tipo de servicio
 function getServiceTypeLabel(serviceType) {
     const labels = {
         'LUZ': 'Electricidad',
@@ -3586,7 +3589,7 @@ function getServiceTypeLabel(serviceType) {
     
     return labels[serviceType] || serviceType;
 }
-
+// CORREGIDO: Función para obtener el nombre del responsable según el tipo de movimiento
 function getResponsableName(movement) {
     if (movement.type === 'income') {
         return "Maria DC Lantigua";
@@ -3681,7 +3684,7 @@ function viewMovementDetails(index) {
     
     showMovementModal(movement);
 }
-
+// CORREGIDO: Función para mostrar modal con detalles del movimiento
 function showMovementModal(movement) {
     const modal = document.getElementById('modal');
     const modalTitle = document.getElementById('modalTitle');
@@ -3739,7 +3742,7 @@ function showMovementModal(movement) {
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
-
+// CORREGIDO: Función para cerrar el modal
 function closeModal() {
     const modal = document.getElementById('modal');
     if (modal) {
@@ -3768,7 +3771,7 @@ function exportChart(chartId, filename) {
         showError('Error al exportar el gráfico');
     }
 }
-
+// CORREGIDO: Función para descargar imagen
 function downloadImage(imageData, filename) {
     const link = document.createElement('a');
     link.href = imageData;
@@ -3796,7 +3799,7 @@ function downloadMovementPDF(index) {
         return;
     }
     
-    showNotification('Generando reporte PDF...', 'info');
+    showNotification('Generando reporte PDF...', 'info'); // Notificación de inicio
     
     // CORREGIDO: Usar la URL correcta según tu urls.py
     // La URL debe ser: /reporte-movimiento/gasto/34/ (sin "dashboard/" al principio)
@@ -3820,7 +3823,7 @@ function downloadMovementPDF(index) {
         showNotification('Reporte generado exitosamente', 'success');
     }, 1000);
 }
-
+// CORREGIDO: Función para descargar el historial completo en PDF con filtros aplicados
 function downloadFullHistoryPDF() {
     const movements = getAllMovementsForTable();
     
@@ -3829,10 +3832,10 @@ function downloadFullHistoryPDF() {
         return;
     }
     
-    showNotification('Generando PDF del historial completo...', 'info');
+    showNotification('Generando PDF del historial completo...', 'info'); // Notificación de inicio
     
     // Construir URL con filtros actuales
-    let url = '/dashboard/reporte-pdf/?';
+    let url = '/dashboard/reporte-pdf/?'; // Asegúrate de que esta URL sea correcta según tu configuración
     const params = new URLSearchParams();
     
     // Obtener valores de filtros (si están visibles en tu dashboard)
@@ -3853,7 +3856,7 @@ function downloadFullHistoryPDF() {
     // Abrir en nueva pestaña para descargar
     window.open(url, '_blank');
 }
-
+// CORREGIDO: Función para imprimir el historial completo con filtros aplicados
 function printFullHistory() {
     const movements = getAllMovementsForTable();
     
@@ -3910,7 +3913,7 @@ function hideLoadingState() {
     const buttons = document.querySelectorAll('button');
     buttons.forEach(btn => btn.disabled = false);
 }
-
+// CORREGIDO: Función para mostrar notificaciones
 function showNotification(message, type = 'info') {
     // Crear contenedor de notificaciones si no existe
     let notificationContainer = document.getElementById('notificationContainer');
@@ -3935,7 +3938,7 @@ function showNotification(message, type = 'info') {
         info: '#2196f3',
         warning: '#ff9800'
     };
-    
+    // Crear la notificación
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.style.cssText = `
@@ -3951,7 +3954,7 @@ function showNotification(message, type = 'info') {
         gap: 10px;
         max-width: 350px;
     `;
-    
+    // Añadir icono según el tipo
     const icon = document.createElement('i');
     icon.className = type === 'success' ? 'fas fa-check-circle' : 
                     type === 'error' ? 'fas fa-exclamation-circle' : 
