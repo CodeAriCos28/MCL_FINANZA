@@ -11,27 +11,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv # Importa la función para cargar variables de entorno
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES NIVELES ARRIBA
-load_dotenv()
+load_dotenv() # Carga las variables de entorno desde el archivo .env
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECRET_KEY = 'django-insecure-6amk(11q7n4-e3y13k!vb0@$6lo@5me-+bnjmofia&2zwf%9v%'
-SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-DEBUG =  os.getenv("DEBUG", "False") == "True"
 # DEBUG  = False
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8003', 'http://localhost:8003']
+# CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8003', 'http://localhost:8003']
+
+
+SECRET_KEY = os.environ.get('SECRET_KEY') # Obtiene la clave secreta de las variables de entorno
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') # Obtiene los hosts permitidos de las variables de entorno
+DEBUG = os.getenv("DEBUG", "False") == "True" # Obtiene el valor de DEBUG de las variables de entorno
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') # Obtiene los orígenes confiables para CSRF de las variables de entorno
+
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -40,10 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    # 'finanzas.apps.FinanzasConfig',
     'finanzas',
 ]
 
+# Middleware configuration
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -58,8 +61,9 @@ MIDDLEWARE = [
     # 'django.middleware.cache.UpdateCacheMiddleware',
     
     
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = 'core.urls' # Ruta al módulo de URLs raíz
 
+# Templates configuration
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -121,31 +125,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-# LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-# TIME_ZONE = 'America/Santo_Domingo'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Configuración de zona horaria para República Dominicana
-# TIME_ZONE = 'America/Santo_Domingo'
+TIME_ZONE = 'UTC' # Configuración de zona horaria universal
+# TIME_ZONE = 'America/Santo_Domingo' # Configuración de zona horaria para República Dominicana
+USE_I18N = True # Habilita la internacionalización
+USE_TZ = True # Habilita el soporte de zonas horarias
 
 # Idioma por defecto
-LANGUAGE_CODE = 'en-us'
-USE_L10N = False
+LANGUAGE_CODE = 'en-us' # Cambiar a 'es' para español
+USE_L10N = False # Deshabilita la localización automática para usar formatos personalizados
 
 # Formato de fecha
 DATE_FORMAT = 'd/m/Y'
 DATETIME_FORMAT = 'd/m/Y H:i:s'
 
-
-# LOGIN_URL = '/login/'  # Instead of the default '/accounts/login/'
-LOGIN_REDIRECT_URL = '/convertidor/' # Where to redirect after login
-LOGOUT_REDIRECT_URL = '/'  # Where to redirect after logout
+# Configuraciones de sesión y autenticación
+LOGIN_REDIRECT_URL = '/convertidor/'  # URL a la que redirigir tras el login exitoso
+LOGOUT_REDIRECT_URL = '/'  # URL a la que redirigir tras el logout exitoso
 
 # Tiempo de vida de la sesión en segundos (10 minutos)
 SESSION_COOKIE_AGE = 3600
@@ -160,7 +155,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 LOGIN_URL = 'index'
 
 CSRF_COOKIE_SECURE = False  # Cambiar a True en producción con HTTPS
-CSRF_USE_SESSIONS = False
+CSRF_USE_SESSIONS = False   # Almacenar el token CSRF en cookies en lugar de en la sesión
+
 # Elimina la sesión de la base de datos al cerrar
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
@@ -182,7 +178,7 @@ STATICFILES_DIRS = [
 
 # Directorio donde Django almacenará los arachivos subidos (ej. comprobantes)
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'mediafiles'
+MEDIA_ROOT = BASE_DIR / 'mediafiles' # Directorio donde se almacenan los archivos subidos
 
 
 # Default primary key field type
