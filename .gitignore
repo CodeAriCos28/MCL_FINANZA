@@ -210,7 +210,7 @@ __marimo__/
 *.sql
 settings.txt
 
-
+.vscode/
 staticfiles/
 mediafiles/
 versel.json
