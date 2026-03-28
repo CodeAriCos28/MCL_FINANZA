@@ -2152,7 +2152,7 @@ textarea {
 
                     <div class="form-group">
                         <label for="tasa_cambio">Tasa de Cambio <span class="required">*</span></label>
-                        <input type="number" id="tasa_cambio" name="tasa_cambio" placeholder="58.50" step="0.01" min="0" required>
+                        <input type="number" id="tasa_cambio" name="tasa_cambio" placeholder="Cargando tasa..." step="0.0001" min="0" readonly style="background: #e3f2fd; cursor: not-allowed;">
                     </div>
 
                     <div class="form-group">
@@ -2283,6 +2283,7 @@ $.ajaxSetup({
 const API_URLS = {
     movimientos: '/api/convertidor/movimientos/',
     estadisticas: '/api/convertidor/estadisticas/',
+    tasa_actual: '/api/convertidor/tasa-actual/',
     crear: '/convertidor/registrar/',
     editar: (id) => `/convertidor/editar/${id}/`,
     eliminar: (id) => `/convertidor/eliminar/${id}/`,
@@ -2294,6 +2295,7 @@ const API_URLS = {
 // Estado de la aplicación
 let appState = {
     movimientos: [],
+    tasaActual: null,
     filtros: {
         fecha_inicio: '',
         fecha_fin: '',
@@ -2461,6 +2463,35 @@ function mostrarLoading(mensaje = 'Procesando...') {
  */
 function cerrarLoading() {
     Swal.close();
+}
+
+async function cargarTasaActual() {
+    try {
+        const response = await $.ajax({
+            url: API_URLS.tasa_actual,
+            type: 'GET',
+            dataType: 'json'
+        });
+
+        if (response.success) {
+            appState.tasaActual = Number(response.tasa_cambio);
+            if (rateInput) {
+                rateInput.value = appState.tasaActual.toFixed(4);
+            }
+            calcularConversion();
+            return true;
+        }
+
+        mostrarSweetError('Tasa no disponible', response.error || 'No se pudo obtener la tasa actual desde la base de datos');
+        return false;
+    } catch (error) {
+        console.error('Error cargando tasa actual:', error);
+        const backendError = error.responseJSON && error.responseJSON.error
+            ? error.responseJSON.error
+            : 'No se pudo obtener la tasa actual desde la base de datos';
+        mostrarSweetError('Error de tasa', backendError);
+        return false;
+    }
 }
 
 // =============================================================================
@@ -2941,7 +2972,9 @@ function abrirModalEdicion(movimiento) {
     // Llenar formulario con datos del movimiento
     document.getElementById('fecha').value = movimiento.fecha;
     document.getElementById('monto_usd').value = movimiento.monto_usd;
-    document.getElementById('tasa_cambio').value = movimiento.tasa_cambio;
+    document.getElementById('tasa_cambio').value = appState.tasaActual !== null
+        ? appState.tasaActual.toFixed(4)
+        : movimiento.tasa_cambio;
     document.getElementById('descripcion').value = movimiento.descripcion || '';
     
     if (movimiento.imagen_url) {
@@ -2978,6 +3011,12 @@ const year = hoy.getFullYear();
 const month = String(hoy.getMonth() + 1).padStart(2, '0');
 const day = String(hoy.getDate()).padStart(2, '0');
 document.getElementById('fecha').value = `${year}-${month}-${day}`;
+
+    if (appState.tasaActual !== null) {
+        document.getElementById('tasa_cambio').value = appState.tasaActual.toFixed(4);
+    } else {
+        document.getElementById('tasa_cambio').value = '';
+    }
     
     // Limpiar preview de imagen
     imagePreview.style.display = 'none';
@@ -3136,8 +3175,13 @@ function manejarEnvioFormulario(event) {
     const montoUsd = document.getElementById('monto_usd').value;
     const tasaCambio = document.getElementById('tasa_cambio').value;
 
-    if (!fecha || !montoUsd || !tasaCambio) {
+    if (!fecha || !montoUsd) {
         mostrarSweetError('Error de validación', 'Por favor completa todos los campos requeridos (*)');
+        return;
+    }
+
+    if (!tasaCambio) {
+        mostrarSweetError('Tasa no disponible', 'No hay tasa de cambio cargada. Actualiza la tasa e inténtalo nuevamente.');
         return;
     }
 
@@ -3206,10 +3250,6 @@ function inicializarEventListeners() {
     if (montoUsdInput) {
         montoUsdInput.addEventListener('input', calcularConversion);
     }
-    if (tasaInput) {
-        tasaInput.addEventListener('input', calcularConversion);
-    }
-
     // Funcionalidad de imágenes
     if (imageUpload) {
         imageUpload.addEventListener('change', manejarSubidaImagen);
@@ -3346,6 +3386,9 @@ function inicializarAplicacion() {
     try {
         // Inicializar event listeners
         inicializarEventListeners();
+
+        // Cargar tasa actual desde BD para cálculo automático
+        cargarTasaActual();
         
         // Cargar datos iniciales
         cargarMovimientos();

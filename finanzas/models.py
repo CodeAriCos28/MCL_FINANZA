@@ -41,7 +41,9 @@ from django.db import models, transaction
 from django.db.models import F, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from django.db import models
 import pytz
 
 logger = logging.getLogger(__name__)
@@ -1068,9 +1070,6 @@ class ServicioPago(PagoBase):
 # SEÑALES  (M-01 + A-02)
 # =============================================================================
 
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
-
 
 # ── M-01: Blindaje de monto_pesos ─────────────────────────────────────────────
 # pre_save garantiza recálculo en cada .save().
@@ -1103,7 +1102,6 @@ def auditar_movimiento_entrada(sender, instance, created, **kwargs):
     )
 
 
-from django.db import models
 
 class ExchangeRate(models.Model):
     base = models.CharField(max_length=3, default="USD")
