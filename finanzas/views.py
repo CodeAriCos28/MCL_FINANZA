@@ -51,7 +51,7 @@ from django.views.decorators.cache import never_cache
 # 4. IMPORTS DE APLICACIONES LOCALES
 # ----------------------------------------------------------------------
 from finanzas import VERSION
-from finanzas.models import Gasto, MovimientoEntrada, ServicioPago, SERVICIOS_TIPOS
+from finanzas.models import Gasto, MovimientoEntrada, ServicioPago, SERVICIOS_TIPOS, ExchangeRate
 
 
 #==========#=============#==========#======#============#===============#==================#=================#
@@ -112,6 +112,27 @@ def logout_view(request):
 # =============================================================================
 # MÓDULO CONVERTIDOR - VISTAS
 # =============================================================================
+
+
+def _obtener_tasa_usd_dop_actual() -> Decimal:
+    """
+    Retorna la tasa USD->DOP más reciente disponible en ExchangeRate.
+    Lanza ValueError si no existe tasa cargada en BD.
+    """
+    tasa = (
+        ExchangeRate.objects
+        .filter(base='USD', target='DOP')
+        .order_by('-date', '-updated_at')
+        .values_list('rate', flat=True)
+        .first()
+    )
+    if tasa is None:
+        raise ValueError(
+            "No hay tasa USD->DOP disponible. Ejecuta primero: python manage.py update_rates"
+        )
+    return tasa
+
+
 @login_required
 @never_cache
 def convertidor_index(request):
@@ -183,13 +204,12 @@ def convertidor_registrar(request):
         try:
             # Obtener datos del formulario
             monto_usd = request.POST.get('monto_usd')
-            tasa_cambio = request.POST.get('tasa_cambio')
             descripcion = request.POST.get('descripcion', '').strip()
             fecha = request.POST.get('fecha')
             imagen = request.FILES.get('imagen')  # Obtener la imagen
 
             print(
-                f"Datos recibidos - USD: {monto_usd}, Tasa: {tasa_cambio}, Fecha: {fecha}, Imagen: {imagen}")
+                f"Datos recibidos - USD: {monto_usd}, Fecha: {fecha}, Imagen: {imagen}")
 
             # Validaciones básicas
             if not monto_usd:
@@ -198,21 +218,21 @@ def convertidor_registrar(request):
                     'error': 'Monto USD es obligatorio'
                 })
 
-            if not tasa_cambio:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Tasa de Cambio es obligatoria'
-                })
-
             # Convertir a decimal de forma segura
             try:
                 monto_usd_decimal = Decimal(str(monto_usd).replace(',', '.'))
-                tasa_cambio_decimal = Decimal(
-                    str(tasa_cambio).replace(',', '.'))
             except Exception as e:
                 return JsonResponse({
                     'success': False,
                     'error': f'Error en formato de números: {str(e)}'
+                })
+
+            try:
+                tasa_cambio_decimal = _obtener_tasa_usd_dop_actual()
+            except ValueError as e:
+                return JsonResponse({
+                    'success': False,
+                    'error': str(e)
                 })
 
             # Crear nuevo movimiento
@@ -342,7 +362,6 @@ def convertidor_editar(request, id):
         movimiento = get_object_or_404(MovimientoEntrada, id=id)
 
         monto_usd = request.POST.get('monto_usd')
-        tasa_cambio = request.POST.get('tasa_cambio')
         descripcion = request.POST.get('descripcion', '').strip()
         fecha = request.POST.get('fecha')
         imagen = request.FILES.get('imagen')
@@ -350,19 +369,26 @@ def convertidor_editar(request, id):
         print(f"Editando movimiento {id} - Imagen: {imagen}")
 
         # Validaciones básicas
-        if not monto_usd or not tasa_cambio:
+        if not monto_usd:
             return JsonResponse({
                 'success': False,
-                'error': 'Monto USD y Tasa de Cambio son obligatorios'
+                'error': 'Monto USD es obligatorio'
             })
 
         try:
-            monto_usd = float(monto_usd)
-            tasa_cambio = float(tasa_cambio)
+            monto_usd = Decimal(str(monto_usd).replace(',', '.'))
         except (TypeError, ValueError):
             return JsonResponse({
                 'success': False,
-                'error': 'Monto USD y Tasa de Cambio deben ser números válidos'
+                'error': 'Monto USD debe ser un número válido'
+            })
+
+        try:
+            tasa_cambio = _obtener_tasa_usd_dop_actual()
+        except ValueError as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
             })
 
         # Actualizar movimiento
@@ -478,6 +504,29 @@ def convertidor_eliminar(request, id):
         'success': False,
         'error': 'Método no permitido'
     })
+
+
+@never_cache
+def api_tasa_actual(request):
+    """
+    Retorna la tasa USD->DOP actual desde ExchangeRate para precargar el formulario.
+    """
+    try:
+        tasa = _obtener_tasa_usd_dop_actual()
+        return JsonResponse({
+            'success': True,
+            'tasa_cambio': float(tasa),
+        })
+    except ValueError as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e),
+        }, status=500)
 
 #=============================================================================
 # REPORTE PDF - HISTORIAL COMPLETO  DEL  CONVERTIDOR
