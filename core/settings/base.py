@@ -10,13 +10,23 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
+import sys
 from pathlib import Path
-from dotenv import load_dotenv # Importa la función para cargar variables de entorno
+# Importa la función para cargar variables de entorno
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent.parent  # ← TRES NIVELES ARRIBA
-load_dotenv(BASE_DIR / ".env") # Carga las variables de entorno desde el archivo .env
+# ← TRES NIVELES ARRIBA
+# Detecta si el código está corriendo dentro de un ejecutable (Nuitka/PyInstaller)
+if getattr(sys, 'frozen', False):
+    # En el EXE, BASE_DIR es la carpeta donde está el run_server.exe
+    BASE_DIR = Path(sys.executable).parent
+else:
+    # En desarrollo, usamos la ruta normal de archivos .py
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# Carga las variables de entorno desde el archivo .env
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -28,14 +38,21 @@ load_dotenv(BASE_DIR / ".env") # Carga las variables de entorno desde el archivo
 # CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8003', 'http://localhost:8003']
 
 EXCHANGE_API_KEY = os.getenv("EXCHANGE_API_KEY")
+
 if not EXCHANGE_API_KEY:
-    raise Exception("Falta EXCHANGE_API_KEY")
+    print("[WARNING] EXCHANGE_API_KEY no definida")
+    EXCHANGE_API_KEY = None
 
-SECRET_KEY = os.environ.get('SECRET_KEY') # Obtiene la clave secreta de las variables de entorno
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') # Obtiene los hosts permitidos de las variables de entorno
-DEBUG = os.getenv("DEBUG", "False") == "True" # Obtiene el valor de DEBUG de las variables de entorno
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') # Obtiene los orígenes confiables para CSRF de las variables de entorno
+# Obtiene la clave secreta de las variables de entorno
+SECRET_KEY = os.environ.get('SECRET_KEY')
+# Obtiene los hosts permitidos de las variables de entorno
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+# Obtiene el valor de DEBUG de las variables de entorno
+DEBUG = os.getenv("DEBUG", "False") == "True"
+# Obtiene los orígenes confiables para CSRF de las variables de entorno
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
 
+CORS_ALLOW_ALL_ORIGINS = True  #
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,11 +63,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'corsheaders',
     'finanzas',
+    'seguridad',
+]
+
+
+AUTHENTICATION_BACKENDS = [
+    'seguridad.backends.SecurityLogicBackend',
 ]
 
 # Middleware configuration
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -59,24 +84,25 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-     # 'django.middleware.cache.FetchFromCacheMiddleware',
+# 'django.middleware.cache.FetchFromCacheMiddleware',
 #    'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.cache.UpdateCacheMiddleware',
-    
-    
-ROOT_URLCONF = 'core.urls' # Ruta al módulo de URLs raíz
+# 'django.middleware.cache.UpdateCacheMiddleware',
+
+
+ROOT_URLCONF = 'core.urls'  # Ruta al módulo de URLs raíz
 
 # Templates configuration
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "TEMPLATES"],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'seguridad.context_processors.menu_modulos',
             ],
         },
     },
@@ -88,6 +114,48 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
+
+# if DB_ENGINE == 'django.db.backends.sqlite3':
+
+#     # 📍 Ruta profesional en Windows
+#     APP_NAME = "DerejFinance"
+#     appdata = os.getenv('APPDATA') or BASE_DIR  # fallback por si acaso
+
+#     DB_DIR = Path(appdata) / APP_NAME
+#     DB_DIR.mkdir(parents=True, exist_ok=True)
+
+#     DB_PATH = DB_DIR / os.environ.get('DB_NAME', 'db.sqlite3')
+
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': DB_ENGINE,
+#             'NAME': DB_PATH,
+#         }
+#     }
+
+# else:
+#     required_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT']
+#     missing = [var for var in required_vars if not os.environ.get(var)]
+
+#     if missing:
+#         raise Exception(f"Faltan variables de entorno para la DB: {missing}")
+
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': DB_ENGINE,
+#             'NAME': os.environ.get('DB_NAME'),
+#             'USER': os.environ.get('DB_USER'),
+#             'PASSWORD': os.environ.get('DB_PASSWORD'),
+#             'HOST': os.environ.get('DB_HOST'),
+#             'PORT': os.environ.get('DB_PORT'),
+#         }
+#     }
+
+#     if 'mysql' in DB_ENGINE:
+#         DATABASES['default']['OPTIONS'] = {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         }
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -104,8 +172,6 @@ DATABASES = {
         }
     }
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -128,21 +194,22 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-TIME_ZONE = 'UTC' # Configuración de zona horaria universal
+TIME_ZONE = 'UTC'  # Configuración de zona horaria universal
 # TIME_ZONE = 'America/Santo_Domingo' # Configuración de zona horaria para República Dominicana
-USE_I18N = True # Habilita la internacionalización
-USE_TZ = True # Habilita el soporte de zonas horarias
+USE_I18N = True  # Habilita la internacionalización
+USE_TZ = True  # Habilita el soporte de zonas horarias
 
 # Idioma por defecto
-LANGUAGE_CODE = 'en-us' # Cambiar a 'es' para español
-USE_L10N = False # Deshabilita la localización automática para usar formatos personalizados
+LANGUAGE_CODE = 'en-us'  # Cambiar a 'es' para español
+USE_L10N = False  # Deshabilita la localización automática para usar formatos personalizados
 
 # Formato de fecha
 DATE_FORMAT = 'd/m/Y'
 DATETIME_FORMAT = 'd/m/Y H:i:s'
 
 # Configuraciones de sesión y autenticación
-LOGIN_REDIRECT_URL = '/convertidor/'  # URL a la que redirigir tras el login exitoso
+# URL a la que redirigir tras el login exitoso
+LOGIN_REDIRECT_URL = '/convertidor/'
 LOGOUT_REDIRECT_URL = '/'  # URL a la que redirigir tras el logout exitoso
 
 # Tiempo de vida de la sesión en segundos (10 minutos)
@@ -158,7 +225,8 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 LOGIN_URL = 'index'
 
 CSRF_COOKIE_SECURE = False  # Cambiar a True en producción con HTTPS
-CSRF_USE_SESSIONS = False   # Almacenar el token CSRF en cookies en lugar de en la sesión
+# Almacenar el token CSRF en cookies en lugar de en la sesión
+CSRF_USE_SESSIONS = False
 
 # Elimina la sesión de la base de datos al cerrar
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
@@ -173,62 +241,29 @@ SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 
+# --- ESTÁTICOS ---
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / "staticfiles"
+# Donde Django buscará los archivos
 STATICFILES_DIRS = [
-    BASE_DIR / "static", # Esto apunta a la carpeta 'static' en la raíz
+    os.path.join(BASE_DIR, 'static'),
 ]
-
-# Directorio donde Django almacenará los arachivos subidos (ej. comprobantes)
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'mediafiles' # Directorio donde se almacenan los archivos subidos
-
+# Donde se colectan para producción (Waitress)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# --- MEDIA ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
-
-# CONFIGURACION PARA LOS LOGS DE DJANGO
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-
-#     'formatters': {
-#         'standard': {
-#             'format': '[{levelname}] {asctime} {name}: {message}',
-#             'style': '{',
-#         }
-#     },
-
-#     'handlers': {
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'standard',
-#         },
-#     },
-
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#         },
-#         'django.request': {
-#             'handlers': ['console'],
-#             'level': 'ERROR',
-#             'propagate': False,
-#         },
-#         'derej_clan': {
-#             'handlers': ['console'],
-#             'level': 'DEBUG',
-#         },
-#     }
-# }
-
-# DEBUG = os.getenv("DEBUG", "False") == "True"
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+    }
+}
 
 LOGGING = {
     "version": 1,

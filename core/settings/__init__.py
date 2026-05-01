@@ -1,12 +1,12 @@
 # core/settings/__init__.py
+from .base import *
+
 import os
+env = os.environ.get("DJANGO_ENV", "dev")
 
-# Por defecto, carga la configuración de 'dev'
-SETTINGS_MODULE = os.environ.get('DJANGO_ENV', 'dev')
-
-if SETTINGS_MODULE == 'dev':
+if env == "dev":
     from .dev import *
-elif SETTINGS_MODULE == 'prod':
+elif env == "prod":
     from .prod import *
     
 # Asegúrate de cargar la configuración base que es común a ambos

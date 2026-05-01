@@ -1916,27 +1916,17 @@ textarea {
         </div>
 
         <div class="sidebar-menu">
-            <!-- Menú para todos los usuarios -->
-            <a href="inicio.html" class="menu-item">
-                <i class='fas fa-home'></i>
-                <span>Inicio</span>
+            {% for modulo in modulos_menu %}
+            <a href="{% if modulo.url_name %}{% url modulo.url_name %}{% else %}#{% endif %}" 
+               class="menu-item {% if request.resolver_match.url_name == modulo.url_name %}active{% endif %}">
+                <i class="{% if 'bx' in modulo.icono %}{{ modulo.icono }}{% else %}fas {{ modulo.icono }}{% endif %}"></i>
+                <span>{{ modulo.nombre }}</span>
             </a>
-            <a href="{% url 'convertidor' %}" class="menu-item">
-                <i class='fas fa-exchange-alt'></i>
-                <span>Conversiones</span>
-            </a>
-            <a href="{% url 'gastos' %}" class="menu-item">
-                <i class='fas fa-wallet'></i>
-                <span> Gestion Gastos</span>
-            </a>
-            <a href="{% url 'servicios' %}" class="menu-item active">
-                <i class='fas fa-file-invoice-dollar'></i>
-                <span>Pago Servicios</span>
-            </a>
-            <a href="{% url 'dashboard' %}" class="menu-item">
-                <i class='fas fa-chart-line'></i>
-                <span>Dashboard</span>
-            </a>
+            {% empty %}
+                <div style="padding: 20px; font-size: 12px; color: rgba(255,255,255,0.5); text-align: center;">
+                    No hay módulos configurados.
+                </div>
+            {% endfor %}
 
             <!-- Cerrar sesión para todos -->
             <a href="{% url 'logout' %}" class="menu-item">

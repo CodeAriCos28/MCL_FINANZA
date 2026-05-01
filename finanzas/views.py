@@ -52,6 +52,7 @@ from django.views.decorators.cache import never_cache
 # ----------------------------------------------------------------------
 from finanzas import VERSION
 from finanzas.models import Gasto, MovimientoEntrada, ServicioPago, SERVICIOS_TIPOS, ExchangeRate
+from seguridad.decorators import modulo_permission_required
 
 
 #==========#=============#==========#======#============#===============#==================#=================#
@@ -134,6 +135,7 @@ def _obtener_tasa_usd_dop_actual() -> Decimal:
 
 
 @login_required
+@modulo_permission_required('conversiones')
 @never_cache
 def convertidor_index(request):
     """
@@ -1699,6 +1701,7 @@ def api_estadisticas(request):
 # VISTAS PRINCIPALES - VERSIÓN CORREGIDA DEL GASTOS
 # =============================================================================
 @login_required
+@modulo_permission_required('gastos')
 @never_cache
 def gastos_index(request):
     """
@@ -3279,6 +3282,7 @@ def api_categorias(request):
 # VISTA PRINCIPAL DEL MÓDULO SERVICIOS
 # ==============================================================================
 @login_required
+@modulo_permission_required('servicios')
 @never_cache
 def servicios_index(request):
     """Vista principal del módulo servicios - Soporta AJAX"""
@@ -4919,11 +4923,12 @@ def servicios_imprimir_historial(request):
 # VISTA PRINCIPAL DEL DASHBOARD
 # =============================================================================
 @login_required
+@modulo_permission_required('dashboard')
 @never_cache
 def dashboard_index(request):
     """
-    Renderiza la plantilla del dashboard sin datos
-    Los datos se obtienen via API desde JavaScript
+    Renderiza la plantilla del dashboard sin datos.
+    Los datos se obtienen via API desde JavaScript.
     """
     # Obtener mensajes Django
     from django.contrib.messages import get_messages
@@ -6782,11 +6787,11 @@ def dashboard_imprimir_historial(request):
 #=============================================================================
 # VISTAS DE ERROR PERSONALIZADAS
 #=============================================================================
-def error_400(request, exception):
-    return render(request, "errors/400.html", status=400)
-def error_403(request, exception):
-    return render(request, "errors/403.html", status=403)
-def error_404(request, exception):
-    return render(request, "errors/404.html", status=404)
-def error_500(request):
-    return render(request, "errors/500.html", status=500)
+# def error_400(request, exception):
+#     return render(request, "errors/400.html", status=400)
+# def error_403(request, exception):
+#     return render(request, "errors/403.html", status=403)
+# def error_404(request, exception):
+#     return render(request, "errors/404.html", status=404)
+# def error_500(request):
+#     return render(request, "errors/500.html", status=500)
